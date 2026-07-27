@@ -8,8 +8,14 @@ import {
   OrderItem,
   Product,
   User,
+  VoucherUsage,
 } from "../models/index.js";
 import { createNotifications } from "./notification.service.js";
+import {
+  getCartPricing,
+  releaseVoucherUsage,
+  validateVoucherForCart,
+} from "./voucher.service.js";
 
 const serviceError = (statusCode, message) => {
   const error = new Error(message);
@@ -137,31 +143,9 @@ export const getMyOrders = async (
 
 export const createOrder = async (userId, shippingInfo) => {
   const orderId = await sequelize.transaction(async (transaction) => {
-    const cart = await Cart.findOne({
-      where: { userId, status: "ACTIVE" },
-      transaction,
-      lock: transaction.LOCK.UPDATE,
-    });
-    if (!cart) throw serviceError(409, "Giỏ hàng đang trống");
-
-    const cartItems = await CartItem.findAll({
-      where: { cartId: cart.id },
-      order: [["id", "ASC"]],
-      transaction,
-      lock: transaction.LOCK.UPDATE,
-    });
-    if (!cartItems.length) throw serviceError(409, "Giỏ hàng đang trống");
-
-    const snapshots = [];
-    let subtotal = 0;
-    for (const cartItem of cartItems) {
-      const product = await Product.findByPk(cartItem.productId, {
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (!product || !product.isActive) {
-        throw serviceError(409, "Có sản phẩm đã ngừng kinh doanh");
-      }
+    const pricing = await getCartPricing(userId, { transaction, lock: true });
+    const { cart, items: snapshots, subtotal } = pricing;
+    for (const { cartItem, product } of snapshots) {
       if (product.stock < cartItem.quantity) {
         throw serviceError(
           409,
@@ -169,11 +153,16 @@ export const createOrder = async (userId, shippingInfo) => {
         );
       }
 
-      const unitPrice = Number(product.price);
-      const totalPrice = unitPrice * cartItem.quantity;
-      subtotal += totalPrice;
-      snapshots.push({ cartItem, product, unitPrice, totalPrice });
     }
+
+    const voucherResult = shippingInfo.voucherCode
+      ? await validateVoucherForCart(userId, shippingInfo.voucherCode, {
+          transaction,
+          lock: true,
+          pricing,
+        })
+      : null;
+    const discountAmount = voucherResult?.discountAmount || 0;
 
     const order = await Order.create({
       userId,
@@ -185,8 +174,22 @@ export const createOrder = async (userId, shippingInfo) => {
       note: shippingInfo.note,
       subtotal,
       shippingFee: 0,
-      totalAmount: subtotal,
+      voucherId: voucherResult?.voucher.id || null,
+      voucherCode: voucherResult?.voucher.code || null,
+      discountAmount,
+      totalAmount: subtotal - discountAmount,
     }, { transaction });
+
+    if (voucherResult) {
+      await VoucherUsage.create({
+        voucherId: voucherResult.voucher.id,
+        userId,
+        orderId: order.id,
+        eligibleSubtotal: voucherResult.eligibleSubtotal,
+        discountAmount,
+        status: "APPLIED",
+      }, { transaction });
+    }
 
     await OrderItem.bulkCreate(snapshots.map(({ cartItem, product, unitPrice, totalPrice }) => ({
       orderId: order.id,
@@ -218,7 +221,7 @@ export const createOrder = async (userId, shippingInfo) => {
         title: "Đặt hàng thành công",
         message: `Đơn hàng ${order.orderCode} đang chờ xác nhận.`,
         orderId: order.id,
-        metadata: { orderCode: order.orderCode, totalAmount: subtotal },
+        metadata: { orderCode: order.orderCode, totalAmount: subtotal - discountAmount },
         dedupeKey: `order:${order.id}:created:user`,
       },
       {
@@ -228,7 +231,7 @@ export const createOrder = async (userId, shippingInfo) => {
         title: "Có đơn hàng mới",
         message: `Đơn hàng ${order.orderCode} vừa được tạo.`,
         orderId: order.id,
-        metadata: { orderCode: order.orderCode, userId, totalAmount: subtotal },
+        metadata: { orderCode: order.orderCode, userId, totalAmount: subtotal - discountAmount },
         dedupeKey: `order:${order.id}:created:admin`,
       },
     ], { transaction });
@@ -251,6 +254,9 @@ export const updateOrderStatus = async (orderId, status) => {
     }
     if (order.status === status) return order;
     await order.update({ status }, { transaction });
+    if (status === "CANCELLED") {
+      await releaseVoucherUsage(order.id, transaction);
+    }
     const statusLabels = {
       PENDING: "đang chờ xử lý",
       CONFIRMED: "đã được xác nhận",
@@ -308,6 +314,7 @@ export const cancelOrder = async (userId, orderId) => {
     }
 
     await order.update({ status: "CANCELLED" }, { transaction });
+    await releaseVoucherUsage(order.id, transaction);
     await createNotifications([
       {
         audience: "USER",

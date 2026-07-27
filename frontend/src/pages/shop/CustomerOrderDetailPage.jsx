@@ -117,6 +117,12 @@ export default function CustomerOrderDetailPage() {
             <div className="space-y-3 py-4 text-xs">
               <div className="flex justify-between text-slate-500"><span>Tạm tính</span><span>{formatCurrency(Number(order.subtotal))}</span></div>
               <div className="flex justify-between text-slate-500"><span>Phí vận chuyển</span><span className="font-bold text-emerald-600">{Number(order.shippingFee) === 0 ? "Miễn phí" : formatCurrency(Number(order.shippingFee))}</span></div>
+              {Number(order.discountAmount) > 0 && (
+                <div className="flex justify-between font-bold text-emerald-600">
+                  <span>Voucher {order.voucherCode}</span>
+                  <span>-{formatCurrency(Number(order.discountAmount))}</span>
+                </div>
+              )}
             </div>
             <div className="flex items-end justify-between border-t border-slate-100 pt-4">
               <span className="text-sm font-black text-slate-800">Tổng cộng</span>

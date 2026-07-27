@@ -7,6 +7,7 @@ import { migrateUserAuthColumns } from './database/userAuth.migration.js';
 import { migrateRefreshSessions } from './database/refreshSession.migration.js';
 import { migrateCommerceSupportTables } from './database/commerceSupport.migration.js';
 import { migrateProductCategories } from './database/productCategory.migration.js';
+import { migrateVouchers } from './database/voucher.migration.js';
 import { initializeNotificationGateway } from './socket/notification.gateway.js';
 const port = process.env.PORT || 3000;
 
@@ -17,6 +18,7 @@ const startServer = async () => {
   await migrateProductCategories();
   await migrateRefreshSessions();
   await migrateCommerceSupportTables();
+  await migrateVouchers();
   await sequelize.sync();
   console.log('Đồng bộ hóa cơ sở dữ liệu thành công');
   const httpServer = createServer(app);

@@ -1,6 +1,6 @@
 import { fn, col, Op } from "sequelize";
 import sequelize from "../config/database.js";
-import { Category, Product } from "../models/index.js";
+import { Category, Product, VoucherCategory } from "../models/index.js";
 import { DEFAULT_CATEGORY_NAME } from "../database/productCategory.migration.js";
 
 export const getCategories = async () => {
@@ -81,6 +81,11 @@ export const deleteCategory = async (id) => sequelize.transaction(async (transac
   }
   if (category.name === DEFAULT_CATEGORY_NAME) {
     const error = new Error("Không thể xóa danh mục mặc định");
+    error.statusCode = 409;
+    throw error;
+  }
+  if (await VoucherCategory.count({ where: { categoryId: category.id }, transaction })) {
+    const error = new Error("Danh mục đang được voucher sử dụng. Vui lòng gỡ khỏi voucher trước");
     error.statusCode = 409;
     throw error;
   }

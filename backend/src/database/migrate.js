@@ -4,6 +4,7 @@ import { migrateUserAuthColumns } from "./userAuth.migration.js";
 import { migrateRefreshSessions } from "./refreshSession.migration.js";
 import { migrateCommerceSupportTables } from "./commerceSupport.migration.js";
 import { migrateProductCategories } from "./productCategory.migration.js";
+import { migrateVouchers } from "./voucher.migration.js";
 
 try {
   await sequelize.authenticate();
@@ -11,6 +12,7 @@ try {
   await migrateProductCategories();
   await migrateRefreshSessions();
   await migrateCommerceSupportTables();
+  await migrateVouchers();
   console.log("Migration cơ sở dữ liệu hoàn tất");
 } catch (error) {
   console.error("Migration cơ sở dữ liệu thất bại:", error);

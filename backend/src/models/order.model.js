@@ -67,6 +67,19 @@ const Order = sequelize.define(
       field: "total_amount",
     },
 
+    voucherCode: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      field: "voucher_code",
+    },
+
+    discountAmount: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0,
+      field: "discount_amount",
+    },
+
     note: {
       type: DataTypes.TEXT,
       allowNull: true,

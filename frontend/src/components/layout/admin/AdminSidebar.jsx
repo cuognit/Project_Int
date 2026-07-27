@@ -69,6 +69,22 @@ export default function AdminSidebar() {
             </svg>
             Quản lý sản phẩm
           </NavLink>
+
+          <NavLink
+            to="/admin/vouchers"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-4 py-3 text-xs font-bold transition-all duration-200 ${
+                isActive
+                  ? "bg-indigo-50 text-indigo-700 shadow-2xs"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              }`
+            }
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M5 4h14a1 1 0 011 1v4a2 2 0 000 4v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4a2 2 0 000-4V5a1 1 0 011-1z" />
+            </svg>
+            Quản lý voucher
+          </NavLink>
         </nav>
       </div>
 

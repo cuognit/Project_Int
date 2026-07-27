@@ -14,6 +14,8 @@ export const createOrderSchema = z.object({
   shippingAddress: cleanText("Địa chỉ giao hàng", 5, 255),
   note: z.string().trim().max(1000, "Ghi chú không được vượt quá 1000 ký tự").optional()
     .transform((value) => value || null),
+  voucherCode: z.string().trim().max(50).nullish()
+    .transform((value) => value ? value.toUpperCase() : null),
 }).strict();
 
 export const orderIdSchema = z.coerce.number().int().positive();

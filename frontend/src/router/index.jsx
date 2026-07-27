@@ -21,6 +21,7 @@ import ProfilePage from '../pages/shop/ProfilePage.jsx';
 import DashboardPage from '../pages/admin/DashboardPage.jsx';
 import UsersPage from '../pages/admin/UsersPage.jsx';
 import ProductsPage from '../pages/admin/ProductsPage.jsx';
+import VouchersPage from '../pages/admin/VouchersPage.jsx';
 
 
 // Auth & Common Pages
@@ -78,6 +79,7 @@ const router = createBrowserRouter([
           { path: 'users', element: <UsersPage /> },
           { path: 'users/:userId', element: <UsersPage /> },
           { path: 'products', element: <ProductsPage /> },
+          { path: 'vouchers', element: <VouchersPage /> },
           
         ],
       },

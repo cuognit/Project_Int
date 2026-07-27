@@ -333,6 +333,12 @@ export default function OrderDrawer({ orderId, onClose, onStatusUpdated }) {
                   )}
                 </span>
               </div>
+              {Number(order.discountAmount) > 0 && (
+                <div className="flex justify-between text-sm font-bold text-emerald-600">
+                  <span>Voucher {order.voucherCode}</span>
+                  <span>-{formatCurrency(Number(order.discountAmount))}</span>
+                </div>
+              )}
               <div className="flex justify-between text-base pt-2 border-t border-slate-200">
                 <span className="text-slate-800 font-bold">
                   Tổng thanh toán

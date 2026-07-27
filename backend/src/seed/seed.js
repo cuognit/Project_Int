@@ -9,6 +9,7 @@ import {
   Order,
   OrderItem,
   Category,
+  Voucher,
 } from "../models/index.js";
 
 // =========================================================
@@ -855,6 +856,69 @@ async function seedDatabase() {
     console.log(
       `Đã tạo ${products.length} sản phẩm`
     );
+
+    const now = new Date();
+    const startsAt = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const endsAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+    const categoryByName = new Map(categories.map((category) => [category.name, category]));
+
+    const welcomeVoucher = await Voucher.create({
+      code: "WELCOME50",
+      name: "Chào mừng thành viên",
+      description: "Giảm 50.000đ cho đơn hàng đầu tiên đủ điều kiện.",
+      discountType: "FIXED",
+      discountValue: 50_000,
+      maxDiscountAmount: null,
+      minOrderAmount: 300_000,
+      scope: "ALL",
+      audience: "ALL",
+      startAt: startsAt,
+      endAt: endsAt,
+      isActive: true,
+      totalUsageLimit: 1000,
+      perUserLimit: 1,
+    }, { transaction });
+
+    const techVoucher = await Voucher.create({
+      code: "TECH10",
+      name: "Giảm 10% phụ kiện công nghệ",
+      description: "Áp dụng cho chuột, bàn phím và tai nghe.",
+      discountType: "PERCENTAGE",
+      discountValue: 10,
+      maxDiscountAmount: 150_000,
+      minOrderAmount: 500_000,
+      scope: "CATEGORIES",
+      audience: "ALL",
+      startAt: startsAt,
+      endAt: endsAt,
+      isActive: true,
+      totalUsageLimit: 500,
+      perUserLimit: 2,
+    }, { transaction });
+    await techVoucher.setCategories(
+      ["Chuột", "Bàn phím", "Tai nghe"].map((name) => categoryByName.get(name).id),
+      { transaction },
+    );
+
+    const vipVoucher = await Voucher.create({
+      code: "VIP200",
+      name: "Ưu đãi khách hàng VIP",
+      description: "Voucher riêng giảm 200.000đ cho khách hàng được chọn.",
+      discountType: "FIXED",
+      discountValue: 200_000,
+      maxDiscountAmount: null,
+      minOrderAmount: 1_000_000,
+      scope: "ALL",
+      audience: "TARGETED",
+      startAt: startsAt,
+      endAt: endsAt,
+      isActive: true,
+      totalUsageLimit: 100,
+      perUserLimit: 1,
+    }, { transaction });
+    await vipVoucher.setUsers(users.slice(0, 5).map((user) => user.id), { transaction });
+
+    console.log(`Đã tạo 3 voucher mẫu: ${welcomeVoucher.code}, ${techVoucher.code}, ${vipVoucher.code}`);
 
     // =====================================================
     // 3. TẠO 600 ORDERS VÀ ORDER ITEMS
