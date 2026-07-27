@@ -53,4 +53,12 @@ export const migrateUserAuthColumns = async () => {
       defaultValue: "customer",
     });
   }
+
+  if (!columns.is_active) {
+    await queryInterface.addColumn(USERS_TABLE, "is_active", {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    });
+  }
 };

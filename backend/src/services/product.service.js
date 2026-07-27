@@ -1,15 +1,22 @@
 import { Op } from "sequelize";
-import { CartItem, OrderItem, Product } from "../models/index.js";
+import { CartItem, Category, OrderItem, Product } from "../models/index.js";
 
 const PRODUCT_FIELDS = [
   "id", "name", "sku", "description", "price", "stock",
-  "imageUrl", "isActive", "createdAt", "updatedAt",
+  "imageUrl", "isActive", "categoryId", "createdAt", "updatedAt",
 ];
 
-export const getProducts = async (params = {}) => {
-  const { page, limit, search, status, stock } = params;
+const CATEGORY_INCLUDE = [{
+  model: Category,
+  as: "category",
+  attributes: ["id", "name"],
+  required: true,
+}];
 
-  const where = {};
+export const getProducts = async (params = {}, { admin = false } = {}) => {
+  const { page, limit, search, status, stock, categoryId } = params;
+
+  const where = admin ? {} : { isActive: true };
 
   if (search && search.trim()) {
     const term = search.trim();
@@ -19,11 +26,18 @@ export const getProducts = async (params = {}) => {
     ];
   }
 
-  if (status === "active") where.isActive = true;
-  else if (status === "inactive") where.isActive = false;
+  if (admin) {
+    if (status === "active") where.isActive = true;
+    else if (status === "inactive") where.isActive = false;
+  }
 
   if (stock === "out") where.stock = 0;
   else if (stock === "low") where.stock = { [Op.gt]: 0, [Op.lte]: 15 };
+
+  const numericCategoryId = Number(categoryId);
+  if (Number.isInteger(numericCategoryId) && numericCategoryId > 0) {
+    where.categoryId = numericCategoryId;
+  }
 
   if (page || limit) {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
@@ -32,6 +46,7 @@ export const getProducts = async (params = {}) => {
 
     const { count, rows } = await Product.findAndCountAll({
       attributes: PRODUCT_FIELDS,
+      include: CATEGORY_INCLUDE,
       where,
       limit: limitNum,
       offset,
@@ -51,13 +66,21 @@ export const getProducts = async (params = {}) => {
 
   return Product.findAll({
     attributes: PRODUCT_FIELDS,
+    include: CATEGORY_INCLUDE,
     where,
     order: [["createdAt", "DESC"]],
   });
 };
 
-export const getProductById = (id) =>
-  Product.findByPk(id, { attributes: PRODUCT_FIELDS });
+export const getProductById = (id, { admin = false } = {}) =>
+  Product.findOne({
+    attributes: PRODUCT_FIELDS,
+    include: CATEGORY_INCLUDE,
+    where: {
+      id,
+      ...(admin ? {} : { isActive: true }),
+    },
+  });
 
 export const findProductBySku = (sku, excludeId) => {
   const where = { sku };
@@ -65,8 +88,15 @@ export const findProductBySku = (sku, excludeId) => {
   return Product.findOne({ where });
 };
 
-export const createProduct = (payload) => Product.create(payload);
-export const updateProduct = (product, payload) => product.update(payload);
+export const createProduct = async (payload) => {
+  const product = await Product.create(payload);
+  return getProductById(product.id, { admin: true });
+};
+
+export const updateProduct = async (product, payload) => {
+  await product.update(payload);
+  return getProductById(product.id, { admin: true });
+};
 
 export const deleteProduct = async (product) => {
   const [orderItemCount, cartItemCount] = await Promise.all([

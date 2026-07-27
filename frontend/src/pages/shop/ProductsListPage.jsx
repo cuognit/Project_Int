@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { getProducts } from '../../api/productApi.js';
+import { getCategories } from '../../api/categoryApi.js';
 import { formatCurrency } from '../../utils/formatCurrency.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Pagination from '../../components/common/Pagination.jsx';
@@ -11,6 +12,9 @@ export default function ProductsListPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('latest');
+  const [categories, setCategories] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryId = searchParams.get("category") || "";
   const [addedToast, setAddedToast] = useState(null);
   const [actionError, setActionError] = useState('');
   const navigate = useNavigate();
@@ -28,7 +32,7 @@ export default function ProductsListPage() {
 
   const fetchProductsList = (page = 1, search = '') => {
     setLoading(true);
-    getProducts({ page, limit: 16, search })
+    getProducts({ page, limit: 16, search, categoryId: categoryId || undefined })
       .then((data) => {
         if (data && data.items) {
           setProducts(data.items);
@@ -48,10 +52,24 @@ export default function ProductsListPage() {
 
   useEffect(() => {
     fetchProductsList(currentPage, searchTerm);
-  }, [currentPage, searchTerm]);
+  }, [currentPage, searchTerm, categoryId]);
+
+  useEffect(() => {
+    getCategories()
+      .then((data) => setCategories(data.filter((category) => category.activeProductCount > 0)))
+      .catch(() => setCategories([]));
+  }, []);
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (event) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (event.target.value) nextParams.set("category", event.target.value);
+    else nextParams.delete("category");
+    setSearchParams(nextParams);
     setCurrentPage(1);
   };
 
@@ -138,8 +156,17 @@ export default function ProductsListPage() {
           </svg>
         </div>
 
-        {/* Sort Select */}
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+          <select
+            value={categoryId}
+            onChange={handleCategoryChange}
+            className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 outline-none focus:border-[#ee4d2d]"
+          >
+            <option value="">Tất cả danh mục</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>{category.name}</option>
+            ))}
+          </select>
           <span className="text-xs font-bold text-slate-500 whitespace-nowrap">Sắp xếp:</span>
           <select
             value={sortBy}
@@ -182,7 +209,10 @@ export default function ProductsListPage() {
                   to={`/products/${product.id}`}
                   className="group bg-white border border-gray-200 rounded-3xl p-3.5 shadow-2xs hover:shadow-xl hover:border-orange-300 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full"
                 >
-                  <div className="space-y-3">
+                    <div className="space-y-3">
+                      <span className="inline-flex rounded-full bg-orange-50 px-2 py-1 text-[9px] font-bold text-[#ee4d2d]">
+                        {product.category?.name}
+                      </span>
                     {/* Image Wrap */}
                     <div className="relative h-44 w-full bg-slate-50 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-100">
                       <img

@@ -1,6 +1,7 @@
 import { verifyAccessToken } from "../services/token.service.js";
+import { User } from "../models/index.js";
 
-export const authenticate = (req, res, next) => {
+export const authenticate = async (req, res, next) => {
   const authorization = req.headers.authorization;
   if (!authorization?.startsWith("Bearer ")) {
     return res.status(401).json({
@@ -20,7 +21,16 @@ export const authenticate = (req, res, next) => {
     ) {
       throw new Error("Invalid access token");
     }
-    req.user = { id: userId, role: payload.role };
+    const user = await User.findByPk(userId, {
+      attributes: ["id", "role", "isActive"],
+    });
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: "Tài khoản không tồn tại hoặc đã bị khóa",
+      });
+    }
+    req.user = { id: user.id, role: user.role };
     return next();
   } catch {
     return res.status(401).json({
@@ -39,4 +49,3 @@ export const requireAdmin = (req, res, next) => {
   }
   return next();
 };
-

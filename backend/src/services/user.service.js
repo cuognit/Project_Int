@@ -1,7 +1,8 @@
 
 import bcrypt from "bcryptjs";
 import { fn, col, literal } from "sequelize";
-import { User, Order } from "../models/index.js";
+import { User, Order, RefreshSession } from "../models/index.js";
+import sequelize from "../config/database.js";
 
 export const getUsers = async () => {
   const users = await User.findAll({
@@ -11,6 +12,8 @@ export const getUsers = async () => {
       "email",
       "phone",
       "address",
+      "role",
+      "isActive",
       [fn("COUNT", col("orders.id")), "totalOrders"],
       [
         fn(
@@ -40,6 +43,8 @@ export const getUsers = async () => {
       "User.email",
       "User.phone",
       "User.address",
+      "User.role",
+      "User.is_active",
     ],
     order: [["id", "ASC"]],
     raw: true,
@@ -53,7 +58,9 @@ export const getUsers = async () => {
 };
 
 export const getUserById = async (id) => {
-  return User.findByPk(id);
+  return User.findByPk(id, {
+    attributes: { exclude: ["password"] },
+  });
 };
 
 export const getAllUserHaveOrders = async () => {
@@ -124,6 +131,7 @@ export const updateUserProfile = async (userId, { fullName, phone, address }) =>
     phone: user.phone,
     address: user.address,
     role: user.role,
+    isActive: user.isActive,
   };
 };
 
@@ -149,7 +157,7 @@ export const changeUserPassword = async (userId, currentPassword, newPassword) =
   return { success: true, message: "Đổi mật khẩu thành công" };
 };
 
-export const adminUpdateUser = async (userId, { fullName, phone, address, role }) => {
+export const adminUpdateUser = async (userId, { fullName, phone, address }) => {
   const user = await User.findByPk(userId);
   if (!user) {
     const error = new Error("Không tìm thấy người dùng");
@@ -160,8 +168,6 @@ export const adminUpdateUser = async (userId, { fullName, phone, address, role }
   if (fullName !== undefined) user.fullName = fullName;
   if (phone !== undefined) user.phone = phone;
   if (address !== undefined) user.address = address;
-  if (role !== undefined && ["customer", "admin"].includes(role)) user.role = role;
-
   await user.save();
 
   return {
@@ -171,5 +177,70 @@ export const adminUpdateUser = async (userId, { fullName, phone, address, role }
     phone: user.phone,
     address: user.address,
     role: user.role,
+    isActive: user.isActive,
   };
+};
+
+export const updateUserAccess = async (
+  actorUserId,
+  userId,
+  { role, isActive },
+) => {
+  const numericUserId = Number(userId);
+  if (!Number.isInteger(numericUserId) || numericUserId <= 0) {
+    const error = new Error("Mã người dùng không hợp lệ");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (
+    numericUserId === actorUserId &&
+    (role !== "admin" || isActive !== true)
+  ) {
+    const error = new Error(
+      "Bạn không thể tự khóa tài khoản hoặc tự hạ quyền quản trị",
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
+  return sequelize.transaction(async (transaction) => {
+    const user = await User.findByPk(numericUserId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!user) {
+      const error = new Error("Không tìm thấy người dùng");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const accessChanged = user.role !== role || user.isActive !== isActive;
+    user.role = role;
+    user.isActive = isActive;
+    await user.save({ transaction });
+
+    if (accessChanged) {
+      await RefreshSession.update(
+        { revokedAt: new Date() },
+        {
+          where: { userId: numericUserId, revokedAt: null },
+          transaction,
+        },
+      );
+    }
+
+    return {
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        address: user.address,
+        role: user.role,
+        isActive: user.isActive,
+      },
+      accessChanged,
+    };
+  });
 };

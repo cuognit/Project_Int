@@ -1,4 +1,5 @@
 import * as productService from "../services/product.service.js";
+import { Category } from "../models/index.js";
 
 const parseId = (value) => {
   const id = Number(value);
@@ -13,6 +14,7 @@ const validatePayload = (body) => {
   const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
   const price = Number(body.price);
   const stock = Number(body.stock);
+  const categoryId = Number(body.categoryId);
 
   if (!name) errors.name = "Tên sản phẩm không được để trống";
   else if (name.length > 150) errors.name = "Tên sản phẩm tối đa 150 ký tự";
@@ -37,12 +39,15 @@ const validatePayload = (body) => {
   if (body.isActive !== undefined && typeof body.isActive !== "boolean") {
     errors.isActive = "Trạng thái sản phẩm không hợp lệ";
   }
+  if (!Number.isInteger(categoryId) || categoryId <= 0) {
+    errors.categoryId = "Vui lòng chọn danh mục";
+  }
 
   return {
     errors,
     value: {
       name, sku, description: description || null, price, stock,
-      imageUrl: imageUrl || null, isActive: body.isActive ?? true,
+      imageUrl: imageUrl || null, isActive: body.isActive ?? true, categoryId,
     },
   };
 };
@@ -56,6 +61,17 @@ export const listProducts = async (req, res, next) => {
   try {
     return res.status(200).json({ success: true, data: await productService.getProducts(req.query) });
   } catch (error) { return next(error); }
+};
+
+export const listAdminProducts = async (req, res, next) => {
+  try {
+    return res.status(200).json({
+      success: true,
+      data: await productService.getProducts(req.query, { admin: true }),
+    });
+  } catch (error) {
+    return next(error);
+  }
 };
 
 export const getProduct = async (req, res, next) => {
@@ -76,6 +92,13 @@ const saveProduct = async (req, res, next, product) => {
         success: false, message: "Dữ liệu sản phẩm không hợp lệ", errors,
       });
     }
+    if (!(await Category.findByPk(value.categoryId))) {
+      return res.status(400).json({
+        success: false,
+        message: "Danh mục không tồn tại",
+        errors: { categoryId: "Danh mục không tồn tại" },
+      });
+    }
     if (await productService.findProductBySku(value.sku, product?.id)) {
       return res.status(409).json({
         success: false, message: "SKU đã tồn tại", errors: { sku: "SKU đã tồn tại" },
@@ -94,7 +117,7 @@ export const updateProduct = async (req, res, next) => {
   try {
     const id = parseId(req.params.productId);
     if (!id) return invalidId(res);
-    const product = await productService.getProductById(id);
+    const product = await productService.getProductById(id, { admin: true });
     if (!product) return notFound(res);
     return saveProduct(req, res, next, product);
   } catch (error) { return next(error); }
@@ -104,7 +127,7 @@ export const deleteProduct = async (req, res, next) => {
   try {
     const id = parseId(req.params.productId);
     if (!id) return invalidId(res);
-    const product = await productService.getProductById(id);
+    const product = await productService.getProductById(id, { admin: true });
     if (!product) return notFound(res);
     return res.status(200).json({
       success: true, data: await productService.deleteProduct(product),

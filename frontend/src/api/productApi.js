@@ -2,6 +2,7 @@ import axiosClient from "./axiosClient.js";
 
 const unwrap = (request) => request.then((response) => response.data.data);
 export const getProducts = (params) => unwrap(axiosClient.get("/products", { params }));
+export const getAdminProducts = (params) => unwrap(axiosClient.get("/products/admin", { params }));
 export const getProduct = (id) => unwrap(axiosClient.get(`/products/${id}`));
 export const createProduct = (payload) => unwrap(axiosClient.post("/products", payload));
 export const updateProduct = (id, payload) =>

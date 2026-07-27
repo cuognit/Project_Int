@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { faker } from "@faker-js/faker";
+import bcrypt from "bcryptjs";
 
 import sequelize from "../config/database.js";
 import {
@@ -7,6 +8,7 @@ import {
   Product,
   Order,
   OrderItem,
+  Category,
 } from "../models/index.js";
 
 // =========================================================
@@ -16,6 +18,74 @@ import {
 const TOTAL_USERS = 50;
 const TOTAL_PRODUCTS = 100;
 const TOTAL_ORDERS = 600;
+
+const CATEGORY_NAMES = [
+  "Chưa phân loại",
+  "Chuột",
+  "Bàn phím",
+  "Tai nghe",
+  "Sạc & Cáp",
+  "Pin & Pin dự phòng",
+  "Webcam",
+  "Loa",
+  "Thiết bị lưu trữ",
+  "Linh kiện máy tính",
+  "Màn hình",
+  "Phụ kiện laptop",
+  "Camera",
+  "Thiết bị mạng",
+  "Đèn & Gia dụng",
+  "Bàn ghế",
+];
+
+const PRODUCT_CATEGORY_BY_SKU = {
+  "LOG-M331": "Chuột",
+  "DAR-EK87": "Bàn phím",
+  "BAS-WM02": "Tai nghe",
+  "BAS-C100": "Sạc & Cáp",
+  "ANK-NANO": "Sạc & Cáp",
+  "XMI-PB": "Pin & Pin dự phòng",
+  "LOG-C270": "Webcam",
+  "JBL-GO": "Loa",
+  "SDK-USB": "Thiết bị lưu trữ",
+  "SSG-870": "Thiết bị lưu trữ",
+  "KST-NV2": "Thiết bị lưu trữ",
+  "KST-FURY": "Linh kiện máy tính",
+  "LG-MON": "Màn hình",
+  "PK-LAP": "Phụ kiện laptop",
+  "CLC-FAN": "Phụ kiện laptop",
+  "UGR-HUB": "Phụ kiện laptop",
+  "XMI-CAM": "Camera",
+  "TPL-ROUTER": "Thiết bị mạng",
+  "XMI-LAMP": "Đèn & Gia dụng",
+  "SIH-CHAIR": "Bàn ghế",
+};
+
+const productImageUrl = (query) =>
+  `https://tse3.mm.bing.net/th?q=${encodeURIComponent(query)}&w=600&h=600&c=7&rs=1&p=0`;
+
+const PRODUCT_IMAGE_BY_SKU = {
+  "LOG-M331": productImageUrl("Logitech M331 Silent Plus wireless mouse product"),
+  "DAR-EK87": productImageUrl("DareU EK87 mechanical keyboard product"),
+  "BAS-WM02": productImageUrl("Baseus Bowie WM02 earbuds product"),
+  "BAS-C100": productImageUrl("Baseus USB C cable 100W product"),
+  "ANK-NANO": productImageUrl("Anker Nano fast charger product"),
+  "XMI-PB": productImageUrl("Xiaomi power bank product"),
+  "LOG-C270": productImageUrl("Logitech C270 HD webcam product"),
+  "JBL-GO": productImageUrl("JBL Go bluetooth speaker product"),
+  "SDK-USB": productImageUrl("SanDisk Ultra Flair USB 3.0 product"),
+  "SSG-870": productImageUrl("Samsung 870 EVO SSD product"),
+  "KST-NV2": productImageUrl("Kingston NV2 NVMe SSD product"),
+  "KST-FURY": productImageUrl("Kingston Fury DDR4 RAM product"),
+  "LG-MON": productImageUrl("LG IPS monitor product"),
+  "PK-LAP": productImageUrl("aluminum laptop stand product"),
+  "CLC-FAN": productImageUrl("CoolCold laptop cooling pad product"),
+  "UGR-HUB": productImageUrl("Ugreen USB C hub product"),
+  "XMI-CAM": productImageUrl("Xiaomi IP camera product"),
+  "TPL-ROUTER": productImageUrl("TP-Link Archer WiFi router product"),
+  "XMI-LAMP": productImageUrl("Xiaomi LED desk lamp product"),
+  "SIH-CHAIR": productImageUrl("Sihoo ergonomic chair product"),
+};
 
 const FAMILY_NAMES = [
   "Nguyễn",
@@ -296,7 +366,7 @@ function getNumericPrice(product) {
   return Number(product.price);
 }
 
-function generateUsers(count) {
+function generateUsers(count, password) {
   const users = [];
   const usedNames = new Set();
 
@@ -338,14 +408,18 @@ function generateUsers(count) {
       address:
         `${houseNumber} ${street}, ` +
         `${district}, Hà Nội`,
+      password,
+      role: "customer",
+      isActive: true,
     });
   }
 
   return users;
 }
 
-function generateProducts() {
+function generateProducts(categories) {
   const products = [];
+  const categoryByName = new Map(categories.map((category) => [category.name, category.id]));
 
   PRODUCT_BASES.forEach((baseProduct, baseIndex) => {
     PRODUCT_VARIANTS.forEach(
@@ -382,9 +456,11 @@ function generateProducts() {
             max: baseIndex < 5 ? 180 : 100,
           }),
 
-          imageUrl:
-            `https://picsum.photos/seed/` +
-            `product-${productIndex}/600/600`,
+          imageUrl: PRODUCT_IMAGE_BY_SKU[baseProduct.sku],
+
+          categoryId: categoryByName.get(
+            PRODUCT_CATEGORY_BY_SKU[baseProduct.sku] || "Chưa phân loại",
+          ),
 
           /*
            * Khoảng 95% sản phẩm đang bán.
@@ -726,8 +802,10 @@ async function seedDatabase() {
     // 1. TẠO 50 USERS
     // =====================================================
 
+    const customerPassword = await bcrypt.hash("Customer@123", 12);
+    const adminPassword = await bcrypt.hash("Admin@123", 12);
     const userData =
-      generateUsers(TOTAL_USERS);
+      generateUsers(TOTAL_USERS, customerPassword);
 
     const users = await User.bulkCreate(
       userData,
@@ -745,7 +823,25 @@ async function seedDatabase() {
     // 2. TẠO 100 PRODUCTS
     // =====================================================
 
-    const productData = generateProducts();
+    const categories = await Category.bulkCreate(
+      CATEGORY_NAMES.map((name) => ({ name })),
+      { transaction, returning: true },
+    );
+
+    await User.create(
+      {
+        fullName: "Quản trị hệ thống",
+        email: "admin@example.com",
+        password: adminPassword,
+        phone: "0900000000",
+        address: "Hà Nội",
+        role: "admin",
+        isActive: true,
+      },
+      { transaction },
+    );
+
+    const productData = generateProducts(categories);
 
     const products =
       await Product.bulkCreate(

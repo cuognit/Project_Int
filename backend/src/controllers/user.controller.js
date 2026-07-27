@@ -1,4 +1,6 @@
 import * as userService from "../services/user.service.js";
+import { updateUserAccessSchema } from "../validators/user.validator.js";
+import { disconnectUserSessions } from "../socket/notification.gateway.js";
 
 export const listUsers = async (req, res, next) => {
   try {
@@ -85,6 +87,7 @@ export const getProfile = async (req, res, next) => {
         phone: user.phone,
         address: user.address,
         role: user.role,
+        isActive: user.isActive,
       },
     });
   } catch (error) {
@@ -139,8 +142,8 @@ export const changePassword = async (req, res, next) => {
 export const adminUpdateUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const { fullName, phone, address, role } = req.body;
-    const updatedUser = await userService.adminUpdateUser(userId, { fullName, phone, address, role });
+    const { fullName, phone, address } = req.body;
+    const updatedUser = await userService.adminUpdateUser(userId, { fullName, phone, address });
     return res.status(200).json({
       success: true,
       message: "Cập nhật thông tin người dùng thành công",
@@ -151,3 +154,36 @@ export const adminUpdateUser = async (req, res, next) => {
   }
 };
 
+export const updateUserAccess = async (req, res, next) => {
+  const validation = updateUserAccessSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({
+      success: false,
+      message: "Dữ liệu phân quyền không hợp lệ",
+    });
+  }
+
+  try {
+    const result = await userService.updateUserAccess(
+      req.user.id,
+      req.params.userId,
+      validation.data,
+    );
+    if (result.accessChanged) {
+      disconnectUserSessions(result.user.id);
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Cập nhật quyền và trạng thái tài khoản thành công",
+      data: result.user,
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+      });
+    }
+    return next(error);
+  }
+};

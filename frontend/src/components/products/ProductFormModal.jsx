@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 const EMPTY_FORM = {
   name: "", sku: "", description: "", price: "", stock: "",
-  imageUrl: "", isActive: true,
+  imageUrl: "", categoryId: "", isActive: true,
 };
 
 const initialForm = (product) => product ? {
@@ -12,10 +12,11 @@ const initialForm = (product) => product ? {
   price: String(product.price),
   stock: String(product.stock),
   imageUrl: product.imageUrl || "",
+  categoryId: String(product.categoryId || ""),
   isActive: product.isActive,
 } : EMPTY_FORM;
 
-export default function ProductFormModal({ product, open, onClose, onSubmit }) {
+export default function ProductFormModal({ product, categories, open, onClose, onSubmit }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -53,9 +54,10 @@ export default function ProductFormModal({ product, open, onClose, onSubmit }) {
         ...form,
         price: form.price === "" ? "" : Number(form.price),
         stock: form.stock === "" ? "" : Number(form.stock),
+        categoryId: form.categoryId === "" ? "" : Number(form.categoryId),
       });
     } catch (error) {
-      const response = error.response?.data;
+      const response = error.response?.data || error;
       setErrors(response?.errors || {});
       setSubmitError(response?.message || "Không thể lưu sản phẩm. Vui lòng thử lại.");
       setSubmitting(false);
@@ -100,6 +102,17 @@ export default function ProductFormModal({ product, open, onClose, onSubmit }) {
                   {errors.sku && <span className="block text-red-600">{errors.sku}</span>}
                 </label>
               </div>
+              <label className="block space-y-1.5 text-xs font-semibold text-slate-600">
+                Danh mục *
+                <select name="categoryId" value={form.categoryId}
+                  onChange={changeField} required className={inputClass("categoryId")}>
+                  <option value="">Chọn danh mục</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </select>
+                {errors.categoryId && <span className="block text-red-600">{errors.categoryId}</span>}
+              </label>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="space-y-1.5 text-xs font-semibold text-slate-600">
                   Giá bán *

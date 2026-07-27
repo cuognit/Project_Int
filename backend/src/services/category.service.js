@@ -1,0 +1,99 @@
+import { fn, col, Op } from "sequelize";
+import sequelize from "../config/database.js";
+import { Category, Product } from "../models/index.js";
+import { DEFAULT_CATEGORY_NAME } from "../database/productCategory.migration.js";
+
+export const getCategories = async () => {
+  const categories = await Category.findAll({
+    attributes: [
+      "id",
+      "name",
+      [fn("COUNT", col("products.id")), "activeProductCount"],
+      "createdAt",
+      "updatedAt",
+    ],
+    include: [{
+      model: Product,
+      as: "products",
+      attributes: [],
+      required: false,
+      where: { isActive: true },
+    }],
+    group: ["Category.id"],
+    order: [["name", "ASC"]],
+    raw: true,
+  });
+
+  return categories.map((category) => ({
+    ...category,
+    activeProductCount: Number(category.activeProductCount || 0),
+    isDefault: category.name === DEFAULT_CATEGORY_NAME,
+  }));
+};
+
+const findDuplicate = (name, excludeId) => Category.findOne({
+  where: {
+    name: { [Op.iLike]: name },
+    ...(excludeId ? { id: { [Op.ne]: excludeId } } : {}),
+  },
+});
+
+export const createCategory = async (name) => {
+  if (await findDuplicate(name)) {
+    const error = new Error("Tên danh mục đã tồn tại");
+    error.statusCode = 409;
+    throw error;
+  }
+  return Category.create({ name });
+};
+
+export const updateCategory = async (id, name) => {
+  const category = await Category.findByPk(id);
+  if (!category) {
+    const error = new Error("Không tìm thấy danh mục");
+    error.statusCode = 404;
+    throw error;
+  }
+  if (category.name === DEFAULT_CATEGORY_NAME) {
+    const error = new Error("Không thể đổi tên danh mục mặc định");
+    error.statusCode = 409;
+    throw error;
+  }
+  if (await findDuplicate(name, category.id)) {
+    const error = new Error("Tên danh mục đã tồn tại");
+    error.statusCode = 409;
+    throw error;
+  }
+  category.name = name;
+  await category.save();
+  return category;
+};
+
+export const deleteCategory = async (id) => sequelize.transaction(async (transaction) => {
+  const category = await Category.findByPk(id, {
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+  if (!category) {
+    const error = new Error("Không tìm thấy danh mục");
+    error.statusCode = 404;
+    throw error;
+  }
+  if (category.name === DEFAULT_CATEGORY_NAME) {
+    const error = new Error("Không thể xóa danh mục mặc định");
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const defaultCategory = await Category.findOne({
+    where: { name: DEFAULT_CATEGORY_NAME },
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+  const [movedProducts] = await Product.update(
+    { categoryId: defaultCategory.id },
+    { where: { categoryId: category.id }, transaction },
+  );
+  await category.destroy({ transaction });
+  return { id: category.id, movedProducts };
+});

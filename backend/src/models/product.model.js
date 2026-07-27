@@ -49,6 +49,12 @@ const Product = sequelize.define(
       field: "image_url",
     },
 
+    categoryId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      field: "category_id",
+    },
+
     isActive: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

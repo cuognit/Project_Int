@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { getUsers, adminUpdateUser } from "../../api/userApi.js";
+import { getUsers, adminUpdateUser, updateUserAccess } from "../../api/userApi.js";
 import { getOrders } from "../../api/orderApi.js";
 import { formatCurrency } from "../../utils/formatCurrency.js";
 import { formatDate } from "../../utils/formatDate.js";
 import OrderStatusBadge from "../../components/orders/OrderStatusBadge.jsx";
 import OrderDrawer from "../../components/orders/OrderDrawer.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function UsersPage() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
   const [usersError, setUsersError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -44,7 +48,7 @@ export default function UsersPage() {
 
   // Edit User Modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState({ fullName: "", phone: "", address: "", role: "customer" });
+  const [editFormData, setEditFormData] = useState({ fullName: "", phone: "", address: "" });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
 
@@ -54,10 +58,63 @@ export default function UsersPage() {
       fullName: selectedUser.fullName || "",
       phone: selectedUser.phone || "",
       address: selectedUser.address || "",
-      role: selectedUser.role || "customer",
     });
     setEditError("");
     setIsEditModalOpen(true);
+  };
+
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+  const [accessFormData, setAccessFormData] = useState({
+    role: "customer",
+    isActive: true,
+  });
+  const [accessLoading, setAccessLoading] = useState(false);
+  const [accessError, setAccessError] = useState("");
+
+  const openAccessModal = () => {
+    if (!selectedUser) return;
+    setAccessFormData({
+      role: selectedUser.role || "customer",
+      isActive: selectedUser.isActive !== false,
+    });
+    setAccessError("");
+    setIsAccessModalOpen(true);
+  };
+
+  const handleSaveAccess = async (event) => {
+    event.preventDefault();
+    if (!selectedUser) return;
+    const changesRole = accessFormData.role !== selectedUser.role;
+    const changesStatus =
+      accessFormData.isActive !== (selectedUser.isActive !== false);
+    if (
+      (changesRole || changesStatus) &&
+      !window.confirm(
+        accessFormData.isActive
+          ? "Xác nhận thay đổi quyền truy cập của người dùng này?"
+          : "Khóa tài khoản sẽ đăng xuất người dùng khỏi tất cả thiết bị. Tiếp tục?",
+      )
+    ) {
+      return;
+    }
+    setAccessLoading(true);
+    setAccessError("");
+    try {
+      const response = await updateUserAccess(selectedUser.id, accessFormData);
+      setUsers((current) =>
+        current.map((item) =>
+          item.id === selectedUser.id ? { ...item, ...response.data } : item,
+        ),
+      );
+      setSelectedUser((current) => ({ ...current, ...response.data }));
+      setIsAccessModalOpen(false);
+    } catch (error) {
+      setAccessError(
+        error?.message || "Không thể cập nhật quyền và trạng thái tài khoản.",
+      );
+    } finally {
+      setAccessLoading(false);
+    }
   };
 
   const handleSaveUser = async (e) => {
@@ -142,11 +199,16 @@ export default function UsersPage() {
   // Filter users based on search query
   const filteredUsers = users.filter((user) => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch = (
       user.fullName.toLowerCase().includes(query) ||
       (user.phone && user.phone.includes(query)) ||
       (user.email && user.email.toLowerCase().includes(query))
     );
+    const matchesRole = roleFilter === "ALL" || user.role === roleFilter;
+    const matchesStatus =
+      statusFilter === "ALL" ||
+      (statusFilter === "ACTIVE" ? user.isActive !== false : user.isActive === false);
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
   // Filter orders based on active tab
@@ -179,7 +241,7 @@ export default function UsersPage() {
         {/* Search header */}
         <div className="p-4 border-b border-slate-100 bg-slate-50/50">
           <h3 className="text-sm font-bold text-slate-800 mb-3">
-            Danh sách Khách hàng
+            Danh sách Người dùng
           </h3>
           <div className="relative">
             <input
@@ -203,6 +265,26 @@ export default function UsersPage() {
               />
             </svg>
           </div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <select
+              value={roleFilter}
+              onChange={(event) => setRoleFilter(event.target.value)}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-semibold text-slate-600 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="ALL">Mọi vai trò</option>
+              <option value="admin">Admin</option>
+              <option value="customer">Customer</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-semibold text-slate-600 focus:border-indigo-500 focus:outline-none"
+            >
+              <option value="ALL">Mọi trạng thái</option>
+              <option value="ACTIVE">Đang hoạt động</option>
+              <option value="INACTIVE">Đã khóa</option>
+            </select>
+          </div>
         </div>
 
         {/* Users scroll container */}
@@ -210,15 +292,15 @@ export default function UsersPage() {
           {usersLoading ? (
             <div className="p-8 text-center text-slate-400 text-xs font-semibold">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600 mx-auto mb-2"></div>
-              Đang tải khách hàng...
+              Đang tải người dùng...
             </div>
           ) : usersError ? (
             <div className="p-6 text-center text-red-500 text-xs font-medium">
-              Lỗi tải dữ liệu khách hàng.
+              Lỗi tải dữ liệu người dùng.
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="p-8 text-center text-slate-400 text-xs italic">
-              Không tìm thấy khách hàng.
+              Không tìm thấy người dùng.
             </div>
           ) : (
             filteredUsers.map((user) => {
@@ -248,6 +330,22 @@ export default function UsersPage() {
                     <p className="font-semibold text-slate-500">
                       {user.phone || "Chưa cập nhật SĐT"}
                     </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase ${
+                        user.role === "admin"
+                          ? "bg-violet-100 text-violet-700"
+                          : "bg-blue-100 text-blue-700"
+                      }`}>
+                        {user.role === "admin" ? "Admin" : "Customer"}
+                      </span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-extrabold ${
+                        user.isActive !== false
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-rose-100 text-rose-700"
+                      }`}>
+                        {user.isActive !== false ? "Hoạt động" : "Đã khóa"}
+                      </span>
+                    </div>
                     {user.totalSpend > 0 && (
                       <p className="text-indigo-600 font-bold mt-1 text-xs">
                         {formatCurrency(user.totalSpend)}
@@ -304,6 +402,22 @@ export default function UsersPage() {
                     <h2 className="text-base font-bold text-slate-800">
                       {selectedUser.fullName}
                     </h2>
+                    <div className="mt-1 flex gap-1.5">
+                      <span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase ${
+                        selectedUser.role === "admin"
+                          ? "bg-violet-100 text-violet-700"
+                          : "bg-blue-100 text-blue-700"
+                      }`}>
+                        {selectedUser.role === "admin" ? "Admin" : "Customer"}
+                      </span>
+                      <span className={`rounded-full px-2 py-0.5 text-[9px] font-extrabold ${
+                        selectedUser.isActive !== false
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-rose-100 text-rose-700"
+                      }`}>
+                        {selectedUser.isActive !== false ? "Đang hoạt động" : "Đã khóa"}
+                      </span>
+                    </div>
                     <p className="text-[11px] text-slate-400 mt-0.5">
                       {selectedUser.email} | SĐT:{" "}
                       {selectedUser.phone || "Chưa cập nhật"}
@@ -329,15 +443,23 @@ export default function UsersPage() {
                   </p>
                 )}
               </div>
-              <button
-                onClick={openEditModal}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer shrink-0"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                Sửa thông tin
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={openAccessModal}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-xs font-bold text-indigo-700 transition-all hover:bg-indigo-100"
+                >
+                  Phân quyền & Trạng thái
+                </button>
+                <button
+                  onClick={openEditModal}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer shrink-0"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Sửa thông tin
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4 px-6 py-4 bg-white border-b border-slate-100">
@@ -470,7 +592,7 @@ export default function UsersPage() {
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-base font-black text-slate-800">Chỉnh sửa thông tin khách hàng</h3>
+                <h3 className="text-base font-black text-slate-800">Chỉnh sửa thông tin người dùng</h3>
                 <p className="text-[11px] text-slate-400 mt-0.5">{selectedUser?.email}</p>
               </div>
               <button
@@ -519,18 +641,6 @@ export default function UsersPage() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Vai trò (Role)</label>
-                <select
-                  value={editFormData.role}
-                  onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold focus:border-indigo-500 focus:outline-none bg-white"
-                >
-                  <option value="customer">Customer (Khách hàng)</option>
-                  <option value="admin">Admin (Quản trị viên)</option>
-                </select>
-              </div>
-
               <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
@@ -546,6 +656,105 @@ export default function UsersPage() {
                 >
                   {editLoading && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
                   {editLoading ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isAccessModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-md space-y-5 rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-base font-black text-slate-800">
+                  Phân quyền và trạng thái
+                </h3>
+                <p className="mt-0.5 text-[11px] text-slate-400">
+                  {selectedUser?.email}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAccessModalOpen(false)}
+                className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            {accessError && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">
+                ⚠️ {accessError}
+              </div>
+            )}
+
+            {selectedUser?.id === currentUser?.id && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold leading-relaxed text-amber-700">
+                Bạn không thể tự khóa tài khoản hoặc tự hạ quyền quản trị.
+              </div>
+            )}
+
+            <form onSubmit={handleSaveAccess} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-bold text-slate-700">
+                  Vai trò
+                </label>
+                <select
+                  value={accessFormData.role}
+                  disabled={selectedUser?.id === currentUser?.id}
+                  onChange={(event) =>
+                    setAccessFormData((current) => ({
+                      ...current,
+                      role: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold focus:border-indigo-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
+                >
+                  <option value="customer">Customer (Khách hàng)</option>
+                  <option value="admin">Admin (Quản trị viên)</option>
+                </select>
+              </div>
+
+              <label className="flex items-center justify-between rounded-2xl border border-slate-200 p-4">
+                <span>
+                  <span className="block text-xs font-bold text-slate-700">
+                    Tài khoản hoạt động
+                  </span>
+                  <span className="mt-1 block text-[10px] text-slate-400">
+                    Tắt sẽ đăng xuất tài khoản khỏi tất cả thiết bị.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={accessFormData.isActive}
+                  disabled={selectedUser?.id === currentUser?.id}
+                  onChange={(event) =>
+                    setAccessFormData((current) => ({
+                      ...current,
+                      isActive: event.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 accent-indigo-600 disabled:cursor-not-allowed"
+                />
+              </label>
+
+              <div className="flex justify-end gap-2 border-t border-slate-100 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAccessModalOpen(false)}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    accessLoading || selectedUser?.id === currentUser?.id
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white transition-colors hover:bg-indigo-700 disabled:opacity-60"
+                >
+                  {accessLoading ? "Đang lưu..." : "Lưu phân quyền"}
                 </button>
               </div>
             </form>

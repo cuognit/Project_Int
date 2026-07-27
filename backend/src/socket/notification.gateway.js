@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import { verifyAccessToken } from "../services/token.service.js";
+import { User } from "../models/index.js";
 
 let io = null;
 
@@ -11,7 +12,7 @@ export const initializeNotificationGateway = (httpServer) => {
     },
   });
 
-  io.use((socket, next) => {
+  io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token;
       const payload = verifyAccessToken(token);
@@ -23,7 +24,11 @@ export const initializeNotificationGateway = (httpServer) => {
       ) {
         throw new Error("Invalid access token");
       }
-      socket.data.user = { id: userId, role: payload.role };
+      const user = await User.findByPk(userId, {
+        attributes: ["id", "role", "isActive"],
+      });
+      if (!user?.isActive) throw new Error("Inactive account");
+      socket.data.user = { id: user.id, role: user.role };
       socket.data.tokenExpiresAt = Number(payload.exp) * 1000;
       return next();
     } catch {
@@ -33,6 +38,7 @@ export const initializeNotificationGateway = (httpServer) => {
 
   io.on("connection", (socket) => {
     const { id, role } = socket.data.user;
+    socket.join(`account:${id}`);
     if (role === "admin") socket.join("admins");
     else socket.join(`user:${id}`);
 
@@ -57,4 +63,11 @@ export const publishNotification = (notification) => {
     ? "admins"
     : `user:${notification.recipientUserId}`;
   io.to(room).emit("notification:new", notification);
+};
+
+export const disconnectUserSessions = (userId) => {
+  if (!io) return;
+  const room = `account:${userId}`;
+  io.to(room).emit("session:revoked");
+  io.in(room).disconnectSockets(true);
 };

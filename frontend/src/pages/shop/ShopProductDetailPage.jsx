@@ -85,6 +85,10 @@ export default function ShopProductDetailPage() {
       <nav className="flex items-center gap-2 text-xs font-semibold text-slate-400">
         <Link to="/" className="hover:text-[#ee4d2d] transition-colors">Trang chủ Shopee</Link>
         <span>/</span>
+        <Link to={`/products?category=${product.categoryId}`} className="hover:text-[#ee4d2d] transition-colors">
+          {product.category?.name}
+        </Link>
+        <span>/</span>
         <span className="text-slate-800 truncate">{product.name}</span>
       </nav>
 

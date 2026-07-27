@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getProducts } from '../../api/productApi.js';
+import { getCategories } from '../../api/categoryApi.js';
 import { formatCurrency } from '../../utils/formatCurrency.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import ScrollReveal from '../../components/common/ScrollReveal.jsx';
 
 export default function ShopHomePage() {
+  const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [addedToast, setAddedToast] = useState(null);
@@ -32,6 +34,14 @@ export default function ShopHomePage() {
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    getCategories()
+      .then((data) =>
+        setCategories(data.filter((category) => category.activeProductCount > 0).slice(0, 6)),
+      )
+      .catch(() => setCategories([]));
   }, []);
 
   const scrollToTop = () => {
@@ -249,23 +259,27 @@ export default function ShopHomePage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          {[
-            { name: 'Đồ Công Nghệ', icon: '📱', color: 'bg-blue-50 text-blue-700 border-blue-100' },
-            { name: 'Thời Trang', icon: '👕', color: 'bg-pink-50 text-pink-700 border-pink-100' },
-            { name: 'Đồ Gia Dụng', icon: '🏠', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-            { name: 'Mỹ Phẩm & Spa', icon: '💄', color: 'bg-purple-50 text-purple-700 border-purple-100' },
-            { name: 'Mẹ & Bé', icon: '🍼', color: 'bg-amber-50 text-amber-700 border-amber-100' },
-            { name: 'Sách & VPP', icon: '📚', color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
-          ].map((cat, idx) => (
+          {categories.map((cat, idx) => {
+            const colors = [
+              'bg-blue-50 text-blue-700 border-blue-100',
+              'bg-pink-50 text-pink-700 border-pink-100',
+              'bg-emerald-50 text-emerald-700 border-emerald-100',
+              'bg-purple-50 text-purple-700 border-purple-100',
+              'bg-amber-50 text-amber-700 border-amber-100',
+              'bg-indigo-50 text-indigo-700 border-indigo-100',
+            ];
+            return (
             <Link
-              key={idx}
-              to="/products"
-              className={`p-3.5 rounded-2xl border ${cat.color} flex flex-col items-center justify-center gap-1.5 hover:scale-105 hover:shadow-md transition-all duration-200 cursor-pointer text-center group`}
+              key={cat.id}
+              to={`/products?category=${cat.id}`}
+              className={`p-3.5 rounded-2xl border ${colors[idx % colors.length]} flex flex-col items-center justify-center gap-1.5 hover:scale-105 hover:shadow-md transition-all duration-200 cursor-pointer text-center group`}
             >
-              <span className="text-2xl group-hover:scale-110 transition-transform">{cat.icon}</span>
+              <span className="text-2xl group-hover:scale-110 transition-transform">▦</span>
               <span className="text-xs font-bold leading-tight">{cat.name}</span>
+              <span className="text-[9px] opacity-70">{cat.activeProductCount} sản phẩm</span>
             </Link>
-          ))}
+            );
+          })}
         </div>
       </section>
 

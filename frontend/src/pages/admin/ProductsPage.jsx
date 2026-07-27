@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { createProduct, deleteProduct, getProducts, updateProduct } from "../../api/productApi.js";
+import { createProduct, deleteProduct, getAdminProducts, updateProduct } from "../../api/productApi.js";
+import { getCategories } from "../../api/categoryApi.js";
 import DeleteProductModal from "../../components/products/DeleteProductModal.jsx";
 import ProductFormModal from "../../components/products/ProductFormModal.jsx";
+import CategoryManagerModal from "../../components/products/CategoryManagerModal.jsx";
 import Pagination from "../../components/common/Pagination.jsx";
 import { formatCurrency } from "../../utils/formatCurrency.js";
 
@@ -26,6 +28,9 @@ export default function ProductsPage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [categories, setCategories] = useState([]);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,12 +51,13 @@ export default function ProductsPage() {
     setLoading(true);
     setLoadError("");
     try {
-      const data = await getProducts({
+      const data = await getAdminProducts({
         page: currentPage,
         limit: 20,
         search: query,
         status: statusFilter,
         stock: stockFilter,
+        categoryId: categoryFilter === "all" ? undefined : categoryFilter,
       });
 
       if (data && data.items) {
@@ -71,7 +77,16 @@ export default function ProductsPage() {
 
   useEffect(() => {
     loadProducts();
-  }, [currentPage, query, statusFilter, stockFilter]);
+  }, [currentPage, query, statusFilter, stockFilter, categoryFilter]);
+
+  const loadCategories = async () => {
+    const data = await getCategories();
+    setCategories(data);
+  };
+
+  useEffect(() => {
+    loadCategories().catch(() => setLoadError("Không thể tải danh mục sản phẩm."));
+  }, []);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -92,6 +107,16 @@ export default function ProductsPage() {
   const handleStockChange = (e) => {
     setStockFilter(e.target.value);
     setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (event) => {
+    setCategoryFilter(event.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleCategoriesChanged = async () => {
+    await loadCategories();
+    await loadProducts();
   };
 
   const saveProduct = async (payload) => {
@@ -120,7 +145,7 @@ export default function ProductsPage() {
       setDeletingProduct(null);
       loadProducts();
     } catch (error) {
-      setDeleteError(error.response?.data?.message || "Không thể xóa sản phẩm.");
+      setDeleteError(error?.message || error.response?.data?.message || "Không thể xóa sản phẩm.");
     } finally {
       setDeleteSubmitting(false);
     }
@@ -135,10 +160,16 @@ export default function ProductsPage() {
           <h2 className="text-2xl font-extrabold text-slate-800">Quản lý sản phẩm</h2>
           <p className="mt-1 text-sm text-slate-400">Theo dõi danh mục, giá bán và tồn kho theo từng trang (20 SP/trang)</p>
         </div>
-        <button type="button" onClick={() => { setEditingProduct(null); setFormOpen(true); }}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 cursor-pointer shadow-md shadow-indigo-100">
-          <span className="text-lg leading-none">+</span> Thêm sản phẩm
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => setCategoryManagerOpen(true)}
+            className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-100">
+            Quản lý danh mục
+          </button>
+          <button type="button" onClick={() => { setEditingProduct(null); setFormOpen(true); }}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 cursor-pointer shadow-md shadow-indigo-100">
+            <span className="text-lg leading-none">+</span> Thêm sản phẩm
+          </button>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
@@ -160,6 +191,13 @@ export default function ProductsPage() {
             <option value="all">Tất cả tồn kho</option>
             <option value="low">Sắp hết hàng (1–15)</option>
             <option value="out">Hết hàng</option>
+          </select>
+          <select value={categoryFilter} onChange={handleCategoryChange}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600 outline-none">
+            <option value="all">Tất cả danh mục</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>{category.name}</option>
+            ))}
           </select>
         </div>
 
@@ -183,6 +221,7 @@ export default function ProductsPage() {
                 <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   <tr>
                     <th className="p-4">Sản phẩm</th><th className="p-4">SKU</th>
+                    <th className="p-4">Danh mục</th>
                     <th className="p-4">Giá bán</th><th className="p-4">Tồn kho</th>
                     <th className="p-4">Trạng thái</th><th className="p-4 text-right">Thao tác</th>
                   </tr>
@@ -202,6 +241,7 @@ export default function ProductsPage() {
                         </div>
                       </div></td>
                       <td className="p-4 text-xs font-bold text-slate-600">{product.sku}</td>
+                      <td className="p-4 text-xs font-semibold text-slate-600">{product.category?.name}</td>
                       <td className="p-4 text-sm font-bold text-slate-800">{formatCurrency(Number(product.price))}</td>
                       <td className="p-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${
                         product.stock === 0 ? "bg-red-50 text-red-600" :
@@ -234,8 +274,10 @@ export default function ProductsPage() {
         )}
       </div>
 
-      <ProductFormModal product={editingProduct} open={formOpen}
+      <ProductFormModal product={editingProduct} categories={categories} open={formOpen}
         onClose={() => { setFormOpen(false); setEditingProduct(null); }} onSubmit={saveProduct} />
+      <CategoryManagerModal open={categoryManagerOpen} categories={categories}
+        onClose={() => setCategoryManagerOpen(false)} onChanged={handleCategoriesChanged} />
       <DeleteProductModal product={deletingProduct} submitting={deleteSubmitting}
         error={deleteError} onClose={() => { if (!deleteSubmitting) setDeletingProduct(null); }}
         onConfirm={confirmDelete} />

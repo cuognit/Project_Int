@@ -6,6 +6,19 @@ import RefreshSession from "./refreshSession.model.js";
 import Cart from "./cart.model.js";
 import CartItem from "./cartItem.model.js";
 import Notification from "./notification.model.js";
+import Category from "./category.model.js";
+
+Category.hasMany(Product, {
+  foreignKey: { name: "categoryId", allowNull: false },
+  as: "products",
+  onDelete: "RESTRICT",
+  onUpdate: "CASCADE",
+});
+
+Product.belongsTo(Category, {
+  foreignKey: { name: "categoryId", allowNull: false },
+  as: "category",
+});
 
 // User 1 - N Order
 User.hasMany(Order, {
@@ -175,4 +188,5 @@ export {
   Cart,
   CartItem,
   Notification,
+  Category,
 };

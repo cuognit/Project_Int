@@ -18,6 +18,7 @@ const publicUser = (user) => ({
   phone: user.phone,
   address: user.address,
   role: user.role,
+  isActive: user.isActive,
 });
 
 const invalidCredentials = () => {
@@ -73,6 +74,11 @@ export const loginUser = async ({ email, password }) => {
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw invalidCredentials();
+  }
+  if (!user.isActive) {
+    const error = new Error("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên");
+    error.statusCode = 403;
+    throw error;
   }
 
   await RefreshSession.destroy({
@@ -132,7 +138,7 @@ export const refreshAccessToken = async (refreshToken) => {
     }],
   });
 
-  if (!session?.user) throw invalidRefreshToken();
+  if (!session?.user || !session.user.isActive) throw invalidRefreshToken();
 
   return {
     user: publicUser(session.user),
