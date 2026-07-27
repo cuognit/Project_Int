@@ -11,6 +11,7 @@
 npm install
 npm run dev
 ```
-
+- tài khoản test admin: cuongct18.jr@gmail.com | a1234567A
+- 
 - Frontend: http://localhost:5173
-- Backend API: http://localhost:3000/api/health
+- Backend API: http://localhost:3000/api/
