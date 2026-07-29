@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "nodemon --watch src/server.js",
+    "dev": "nodemon --watch src --ext js src/server.js",
     "start": "node src/server.js",
     "seed": "node src/seed/seed.js",
     "db:migrate": "node src/database/migrate.js",

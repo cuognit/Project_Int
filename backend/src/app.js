@@ -6,6 +6,7 @@ import { errorHandler } from './middlewares/error.middleware.js';
 import { notFound } from './middlewares/notFound.middleware.js';
 
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(
   cors({

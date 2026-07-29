@@ -11,6 +11,8 @@ import Voucher from "./voucher.model.js";
 import VoucherCategory from "./voucherCategory.model.js";
 import VoucherUser from "./voucherUser.model.js";
 import VoucherUsage from "./voucherUsage.model.js";
+import Payment from "./payment.model.js";
+import PaymentAction from "./paymentAction.model.js";
 
 Category.hasMany(Product, {
   foreignKey: { name: "categoryId", allowNull: false },
@@ -145,6 +147,34 @@ VoucherUsage.belongsTo(Order, {
   as: "order",
 });
 
+Order.hasOne(Payment, {
+  foreignKey: { name: "orderId", allowNull: false },
+  as: "payment",
+  onDelete: "CASCADE",
+});
+Payment.belongsTo(Order, {
+  foreignKey: { name: "orderId", allowNull: false },
+  as: "order",
+});
+Payment.hasMany(PaymentAction, {
+  foreignKey: { name: "paymentId", allowNull: false },
+  as: "actions",
+  onDelete: "CASCADE",
+});
+PaymentAction.belongsTo(Payment, {
+  foreignKey: { name: "paymentId", allowNull: false },
+  as: "payment",
+});
+User.hasMany(PaymentAction, {
+  foreignKey: { name: "adminUserId", allowNull: false },
+  as: "paymentActions",
+  onDelete: "RESTRICT",
+});
+PaymentAction.belongsTo(User, {
+  foreignKey: { name: "adminUserId", allowNull: false },
+  as: "admin",
+});
+
 User.hasMany(RefreshSession, {
   foreignKey: {
     name: "userId",
@@ -261,4 +291,6 @@ export {
   VoucherCategory,
   VoucherUser,
   VoucherUsage,
+  Payment,
+  PaymentAction,
 };

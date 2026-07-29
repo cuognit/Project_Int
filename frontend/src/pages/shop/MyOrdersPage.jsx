@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cancelOrder, getMyOrders } from "../../api/orderApi.js";
 import CancelOrderModal from "../../components/orders/CancelOrderModal.jsx";
 import OrderStatusBadge from "../../components/orders/OrderStatusBadge.jsx";
+import PaymentStatusBadge from "../../components/orders/PaymentStatusBadge.jsx";
 import { formatCurrency } from "../../utils/formatCurrency.js";
 import { formatDate } from "../../utils/formatDate.js";
 
@@ -233,7 +234,10 @@ export default function MyOrdersPage() {
                     <p className="text-xs font-black text-slate-800">#{order.orderCode}</p>
                     <p className="mt-1 text-[10px] text-slate-400">{formatDate(order.createdAt)}</p>
                   </div>
-                  <OrderStatusBadge status={order.status} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PaymentStatusBadge status={order.paymentStatus} />
+                    <OrderStatusBadge status={order.status} />
+                  </div>
                 </div>
 
                 <div className="divide-y divide-slate-100">
@@ -256,14 +260,17 @@ export default function MyOrdersPage() {
                 )}
 
                 <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 px-5 py-4">
-                  <p className="text-[11px] text-slate-400">{totalQuantity} sản phẩm · Thanh toán COD</p>
+                  <p className="text-[11px] text-slate-400">
+                    {totalQuantity} sản phẩm · Thanh toán {order.paymentMethod === "VNPAY" ? "VNPay" : "COD"}
+                  </p>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="text-[10px] text-slate-400">Tổng thanh toán</p>
                       <p className="text-lg font-black text-[#ee4d2d]">{formatCurrency(Number(order.totalAmount))}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {order.status === "PENDING" && (
+                      {order.status === "PENDING"
+                        && !(order.paymentMethod === "VNPAY" && ["PENDING", "REFUNDING"].includes(order.paymentStatus)) && (
                         <button
                           onClick={() => {
                             setCancelError("");

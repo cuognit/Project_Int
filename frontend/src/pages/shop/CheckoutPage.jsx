@@ -34,6 +34,7 @@ export default function CheckoutPage() {
   const [appliedVoucher, setAppliedVoucher] = useState(null);
   const [voucherLoading, setVoucherLoading] = useState(false);
   const [voucherError, setVoucherError] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("COD");
 
   const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -142,14 +143,16 @@ export default function CheckoutPage() {
         shippingPhone: form.shippingPhone.trim(),
         shippingAddress: form.shippingAddress.trim(),
         note: form.note.trim(),
+        paymentMethod,
       };
       if (appliedVoucher?.code) orderPayload.voucherCode = appliedVoucher.code;
       const order = await createOrder(orderPayload);
       clearCart();
-      navigate(`/my-orders/${order.id}`, {
-        replace: true,
-        state: { orderSuccess: true },
-      });
+      if (paymentMethod === "VNPAY" && order.paymentUrl) {
+        window.location.assign(order.paymentUrl);
+        return;
+      }
+      navigate(`/my-orders/${order.id}`, { replace: true, state: { orderSuccess: true } });
     } catch (error) {
       if (error?.errors) setErrors(error.errors);
       setSubmitError(error?.message || "Không thể tạo đơn hàng. Vui lòng thử lại.");
@@ -303,12 +306,28 @@ export default function CheckoutPage() {
         <aside className="space-y-4">
           <section className="rounded-3xl border border-orange-100 bg-white p-6 shadow-sm">
             <h2 className="border-b border-slate-100 pb-4 text-sm font-black text-slate-800">Phương thức thanh toán</h2>
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border-2 border-[#ee4d2d] bg-orange-50/50 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xl shadow-sm">💵</div>
-              <div>
-                <p className="text-xs font-black text-slate-800">Thanh toán khi nhận hàng</p>
-                <p className="mt-0.5 text-[10px] text-slate-500">COD · Thanh toán cho người giao hàng</p>
-              </div>
+            <div className="mt-4 space-y-2">
+              {[
+                { value: "COD", icon: "💵", title: "Thanh toán khi nhận hàng", note: "COD · Thanh toán cho người giao hàng" },
+                { value: "VNPAY", icon: "🏦", title: "Thanh toán qua VNPay", note: "QR, ATM nội địa hoặc thẻ quốc tế" },
+              ].map((method) => (
+                <button
+                  key={method.value}
+                  type="button"
+                  onClick={() => setPaymentMethod(method.value)}
+                  className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left ${
+                    paymentMethod === method.value
+                      ? "border-[#ee4d2d] bg-orange-50/50"
+                      : "border-slate-200 bg-white"
+                  }`}
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xl shadow-sm">{method.icon}</div>
+                  <div>
+                    <p className="text-xs font-black text-slate-800">{method.title}</p>
+                    <p className="mt-0.5 text-[10px] text-slate-500">{method.note}</p>
+                  </div>
+                </button>
+              ))}
             </div>
           </section>
 

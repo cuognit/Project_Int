@@ -80,6 +80,26 @@ const Order = sequelize.define(
       field: "discount_amount",
     },
 
+    paymentMethod: {
+      type: DataTypes.ENUM("COD", "VNPAY"),
+      allowNull: false,
+      defaultValue: "COD",
+      field: "payment_method",
+    },
+
+    paymentStatus: {
+      type: DataTypes.ENUM("PENDING", "PAID", "FAILED", "REFUNDING", "REFUNDED", "CANCELLED"),
+      allowNull: false,
+      defaultValue: "PENDING",
+      field: "payment_status",
+    },
+
+    paymentExpiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: "payment_expires_at",
+    },
+
     note: {
       type: DataTypes.TEXT,
       allowNull: true,

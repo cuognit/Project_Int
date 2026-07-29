@@ -27,7 +27,11 @@ export const createOrder = async (req, res, next) => {
   const validation = createOrderSchema.safeParse(req.body);
   if (!validation.success) return validationError(res, validation.error.issues);
   try {
-    const order = await orderService.createOrder(req.user.id, validation.data);
+    const order = await orderService.createOrder(
+      req.user.id,
+      validation.data,
+      req.ip || req.socket.remoteAddress,
+    );
     return res.status(201).json({ success: true, data: order });
   } catch (error) {
     return handleError(error, res, next);
@@ -84,7 +88,12 @@ export const updateStatus = async (req, res, next) => {
   if (!orderId.success) return validationError(res, orderId.error.issues);
   if (!body.success) return validationError(res, body.error.issues);
   try {
-    const order = await orderService.updateOrderStatus(orderId.data, body.data.status);
+    const order = await orderService.updateOrderStatus(
+      orderId.data,
+      body.data.status,
+      `admin:${req.user.id}`,
+      req.ip || req.socket.remoteAddress,
+    );
     return res.status(200).json({ success: true, data: order });
   } catch (error) {
     return handleError(error, res, next);
@@ -95,7 +104,11 @@ export const cancelOrder = async (req, res, next) => {
   const orderId = orderIdSchema.safeParse(req.params.orderId);
   if (!orderId.success) return validationError(res, orderId.error.issues);
   try {
-    const order = await orderService.cancelOrder(req.user.id, orderId.data);
+    const order = await orderService.cancelOrder(
+      req.user.id,
+      orderId.data,
+      req.ip || req.socket.remoteAddress,
+    );
     return res.status(200).json({
       success: true,
       message: "Hủy đơn hàng thành công",

@@ -3,6 +3,7 @@ import { getOrder, updateOrderStatus } from "../../api/orderApi.js";
 import { formatCurrency } from "../../utils/formatCurrency.js";
 import { formatDate } from "../../utils/formatDate.js";
 import OrderStatusBadge from "./OrderStatusBadge.jsx";
+import PaymentStatusBadge from "./PaymentStatusBadge.jsx";
 
 export default function OrderDrawer({ orderId, onClose, onStatusUpdated }) {
   const [order, setOrder] = useState(null);
@@ -56,7 +57,7 @@ export default function OrderDrawer({ orderId, onClose, onStatusUpdated }) {
       }
     } catch (err) {
       console.error(err);
-      alert("Cập nhật trạng thái thất bại!");
+      alert(err?.message || "Cập nhật trạng thái thất bại!");
     } finally {
       setUpdating(false);
     }
@@ -153,14 +154,30 @@ export default function OrderDrawer({ orderId, onClose, onStatusUpdated }) {
                       className="block w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
                     >
                       <option value="PENDING">Chờ xử lý (Pending)</option>
-                      <option value="CONFIRMED">Đã xác nhận (Confirmed)</option>
-                      <option value="SHIPPING">
+                      <option
+                        value="CONFIRMED"
+                        disabled={order.paymentMethod === "VNPAY" && order.paymentStatus !== "PAID"}
+                      >
+                        Đã xác nhận (Confirmed)
+                      </option>
+                      <option
+                        value="SHIPPING"
+                        disabled={order.paymentMethod === "VNPAY" && order.paymentStatus !== "PAID"}
+                      >
                         Đang giao hàng (Shipping)
                       </option>
-                      <option value="COMPLETED">
+                      <option
+                        value="COMPLETED"
+                        disabled={order.paymentMethod === "VNPAY" && order.paymentStatus !== "PAID"}
+                      >
                         Đã hoàn thành (Completed)
                       </option>
-                      <option value="CANCELLED">Đã hủy (Cancelled)</option>
+                      <option
+                        value="CANCELLED"
+                        disabled={order.paymentMethod === "VNPAY" && ["PENDING", "REFUNDING"].includes(order.paymentStatus)}
+                      >
+                        Đã hủy (Cancelled)
+                      </option>
                     </select>
                     {updating && (
                       <div className="absolute right-3 top-3">
@@ -315,6 +332,12 @@ export default function OrderDrawer({ orderId, onClose, onStatusUpdated }) {
           {/* Footer Billing Summary */}
           {order && !loading && (
             <div className="p-6 bg-slate-50 border-t border-slate-200 space-y-2">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500">
+                  {order.paymentMethod === "VNPAY" ? "VNPay" : "COD"}
+                </span>
+                <PaymentStatusBadge status={order.paymentStatus} />
+              </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500 font-medium">Tạm tính</span>
                 <span className="text-slate-800 font-semibold">

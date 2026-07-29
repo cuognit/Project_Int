@@ -85,6 +85,19 @@ export default function AdminSidebar() {
             </svg>
             Quản lý voucher
           </NavLink>
+          <NavLink
+            to="/admin/payments"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-4 py-3 text-xs font-bold transition-all duration-200 ${
+                isActive
+                  ? "bg-indigo-50 text-indigo-700 shadow-2xs"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              }`
+            }
+          >
+            <span className="flex h-5 w-5 items-center justify-center text-base">₫</span>
+            Quản lý thanh toán
+          </NavLink>
         </nav>
       </div>
 

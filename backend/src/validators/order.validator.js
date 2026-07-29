@@ -16,6 +16,7 @@ export const createOrderSchema = z.object({
     .transform((value) => value || null),
   voucherCode: z.string().trim().max(50).nullish()
     .transform((value) => value ? value.toUpperCase() : null),
+  paymentMethod: z.enum(["COD", "VNPAY"]).default("COD"),
 }).strict();
 
 export const orderIdSchema = z.coerce.number().int().positive();

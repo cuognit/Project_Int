@@ -7,6 +7,7 @@ import {
   Order,
   OrderItem,
   Product,
+  Payment,
   User,
   VoucherUsage,
 } from "../models/index.js";
@@ -16,6 +17,8 @@ import {
   releaseVoucherUsage,
   validateVoucherForCart,
 } from "./voucher.service.js";
+import { cancelLockedOrder } from "./orderCancellation.service.js";
+import { createVnpayPayment, refundPaidOrder } from "./vnpay.service.js";
 
 const serviceError = (statusCode, message) => {
   const error = new Error(message);
@@ -37,6 +40,15 @@ const orderIncludes = [
       as: "product",
       attributes: ["id", "name", "sku", "imageUrl", "isActive"],
     }],
+  },
+  {
+    model: Payment,
+    as: "payment",
+    attributes: [
+      "id", "provider", "txnRef", "status", "transactionNo", "bankCode",
+      "cardType", "payDate", "responseCode", "transactionStatus",
+      "refundResponseCode", "refundMessage", "refundedAt", "expiresAt",
+    ],
   },
 ];
 
@@ -141,8 +153,8 @@ export const getMyOrders = async (
   };
 };
 
-export const createOrder = async (userId, shippingInfo) => {
-  const orderId = await sequelize.transaction(async (transaction) => {
+export const createOrder = async (userId, shippingInfo, ipAddress) => {
+  const result = await sequelize.transaction(async (transaction) => {
     const pricing = await getCartPricing(userId, { transaction, lock: true });
     const { cart, items: snapshots, subtotal } = pricing;
     for (const { cartItem, product } of snapshots) {
@@ -178,6 +190,8 @@ export const createOrder = async (userId, shippingInfo) => {
       voucherCode: voucherResult?.voucher.code || null,
       discountAmount,
       totalAmount: subtotal - discountAmount,
+      paymentMethod: shippingInfo.paymentMethod,
+      paymentStatus: "PENDING",
     }, { transaction });
 
     if (voucherResult) {
@@ -236,13 +250,30 @@ export const createOrder = async (userId, shippingInfo) => {
       },
     ], { transaction });
 
-    return order.id;
+    const vnpay = shippingInfo.paymentMethod === "VNPAY"
+      ? await createVnpayPayment(order, ipAddress, transaction)
+      : null;
+    return { orderId: order.id, paymentUrl: vnpay?.paymentUrl || null };
   });
 
-  return getOrderById(orderId);
+  const order = await getOrderById(result.orderId);
+  return { ...order.toJSON(), paymentUrl: result.paymentUrl };
 };
 
-export const updateOrderStatus = async (orderId, status) => {
+export const updateOrderStatus = async (orderId, status, requestedBy = "admin", ipAddress) => {
+  const current = await Order.findByPk(orderId);
+  if (!current) throw serviceError(404, "Không tìm thấy đơn hàng");
+  if (
+    status === "CANCELLED"
+    && current.paymentMethod === "VNPAY"
+    && current.paymentStatus === "PENDING"
+  ) {
+    throw serviceError(409, "Giao dịch VNPay đang chờ xử lý, chưa thể hủy đơn");
+  }
+  if (status === "CANCELLED" && current.paymentMethod === "VNPAY" && current.paymentStatus === "PAID") {
+    await refundPaidOrder(orderId, requestedBy, ipAddress);
+    return getOrderById(orderId);
+  }
   return sequelize.transaction(async (transaction) => {
     const order = await Order.findByPk(orderId, {
       transaction,
@@ -253,9 +284,28 @@ export const updateOrderStatus = async (orderId, status) => {
       throw serviceError(409, "Đơn hàng đã hủy không thể chuyển sang trạng thái khác");
     }
     if (order.status === status) return order;
-    await order.update({ status }, { transaction });
+    if (
+      order.paymentMethod === "VNPAY"
+      && order.paymentStatus !== "PAID"
+      && ["CONFIRMED", "SHIPPING", "COMPLETED"].includes(status)
+    ) {
+      throw serviceError(409, "Đơn VNPay chưa thanh toán không thể xử lý");
+    }
     if (status === "CANCELLED") {
-      await releaseVoucherUsage(order.id, transaction);
+      await cancelLockedOrder(order, {
+        transaction,
+        paymentStatus: order.paymentMethod === "VNPAY" ? "FAILED" : "CANCELLED",
+        actor: requestedBy,
+      });
+      const payment = await Payment.findOne({ where: { orderId }, transaction });
+      if (payment?.status === "PENDING") {
+        await payment.update({ status: "FAILED", responseCode: "CANCELLED" }, { transaction });
+      }
+      return order;
+    }
+    await order.update({ status }, { transaction });
+    if (status === "COMPLETED" && order.paymentMethod === "COD") {
+      await order.update({ paymentStatus: "PAID" }, { transaction });
     }
     const statusLabels = {
       PENDING: "đang chờ xử lý",
@@ -278,7 +328,19 @@ export const updateOrderStatus = async (orderId, status) => {
   });
 };
 
-export const cancelOrder = async (userId, orderId) => {
+export const cancelOrder = async (userId, orderId, ipAddress) => {
+  const current = await Order.findOne({ where: { id: orderId, userId } });
+  if (!current) throw serviceError(404, "Không tìm thấy đơn hàng");
+  if (current.status !== "PENDING") {
+    throw serviceError(409, "Chỉ có thể hủy đơn hàng đang chờ xử lý");
+  }
+  if (current.paymentMethod === "VNPAY" && current.paymentStatus === "PENDING") {
+    throw serviceError(409, "Giao dịch VNPay đang chờ xử lý, chưa thể hủy đơn");
+  }
+  if (current.paymentMethod === "VNPAY" && current.paymentStatus === "PAID") {
+    await refundPaidOrder(orderId, `customer:${userId}`, ipAddress);
+    return getOrderById(orderId);
+  }
   await sequelize.transaction(async (transaction) => {
     const order = await Order.findOne({
       where: { id: orderId, userId },
@@ -292,51 +354,15 @@ export const cancelOrder = async (userId, orderId) => {
       throw serviceError(409, "Chỉ có thể hủy đơn hàng đang chờ xử lý");
     }
 
-    const items = await OrderItem.findAll({
-      where: { orderId: order.id },
-      order: [["productId", "ASC"]],
+    await cancelLockedOrder(order, {
       transaction,
-      lock: transaction.LOCK.UPDATE,
+      paymentStatus: order.paymentMethod === "VNPAY" ? "FAILED" : "CANCELLED",
+      actor: `customer:${userId}`,
     });
-
-    for (const item of items) {
-      const product = await Product.findByPk(item.productId, {
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (!product) {
-        throw serviceError(409, `Sản phẩm ${item.productName} không còn tồn tại`);
-      }
-      await product.update(
-        { stock: product.stock + item.quantity },
-        { transaction },
-      );
+    const payment = await Payment.findOne({ where: { orderId }, transaction });
+    if (payment?.status === "PENDING") {
+      await payment.update({ status: "FAILED", responseCode: "CANCELLED" }, { transaction });
     }
-
-    await order.update({ status: "CANCELLED" }, { transaction });
-    await releaseVoucherUsage(order.id, transaction);
-    await createNotifications([
-      {
-        audience: "USER",
-        recipientUserId: userId,
-        type: "ORDER_CANCELLED",
-        title: "Đơn hàng đã được hủy",
-        message: `Đơn hàng ${order.orderCode} đã được hủy thành công.`,
-        orderId: order.id,
-        metadata: { orderCode: order.orderCode },
-        dedupeKey: `order:${order.id}:cancelled:user`,
-      },
-      {
-        audience: "ADMIN",
-        recipientUserId: null,
-        type: "ORDER_CANCELLED_BY_USER",
-        title: "Khách hàng đã hủy đơn",
-        message: `Đơn hàng ${order.orderCode} đã được khách hàng hủy.`,
-        orderId: order.id,
-        metadata: { orderCode: order.orderCode, userId },
-        dedupeKey: `order:${order.id}:cancelled:admin`,
-      },
-    ], { transaction });
   });
 
   return getOrderById(orderId);

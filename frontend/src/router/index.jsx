@@ -14,6 +14,7 @@ import CartPage from '../pages/shop/CartPage.jsx';
 import CheckoutPage from '../pages/shop/CheckoutPage.jsx';
 import MyOrdersPage from '../pages/shop/MyOrdersPage.jsx';
 import CustomerOrderDetailPage from '../pages/shop/CustomerOrderDetailPage.jsx';
+import VnpayResultPage from '../pages/shop/VnpayResultPage.jsx';
 
 import ProfilePage from '../pages/shop/ProfilePage.jsx';
 
@@ -22,6 +23,7 @@ import DashboardPage from '../pages/admin/DashboardPage.jsx';
 import UsersPage from '../pages/admin/UsersPage.jsx';
 import ProductsPage from '../pages/admin/ProductsPage.jsx';
 import VouchersPage from '../pages/admin/VouchersPage.jsx';
+import PaymentsPage from '../pages/admin/PaymentsPage.jsx';
 
 
 // Auth & Common Pages
@@ -59,6 +61,7 @@ const router = createBrowserRouter([
           { path: 'checkout', element: <CheckoutPage /> },
           { path: 'my-orders', element: <MyOrdersPage /> },
           { path: 'my-orders/:orderId', element: <CustomerOrderDetailPage /> },
+          { path: 'payment/vnpay/result', element: <VnpayResultPage /> },
           { path: 'my-order', element: <Navigate to="/my-orders" replace /> },
           { path: 'my-order/:orderId', element: <CustomerOrderDetailPage /> },
           { path: 'cart', element: <CartPage /> },
@@ -80,6 +83,7 @@ const router = createBrowserRouter([
           { path: 'users/:userId', element: <UsersPage /> },
           { path: 'products', element: <ProductsPage /> },
           { path: 'vouchers', element: <VouchersPage /> },
+          { path: 'payments', element: <PaymentsPage /> },
           
         ],
       },

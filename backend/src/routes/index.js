@@ -8,6 +8,7 @@ import cartRoutes from './cart.routes.js';
 import notificationRoutes from './notification.routes.js';
 import categoryRoutes from './category.routes.js';
 import voucherRoutes from './voucher.routes.js';
+import paymentRoutes from './payment.routes.js';
 
 const router = Router();
 router.get('/health', (_req, res) => res.json({ message: 'Backend đang hoạt động' }));
@@ -18,6 +19,7 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/products', productRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/vouchers', voucherRoutes);
+router.use('/payments', paymentRoutes);
 router.use('/cart', cartRoutes);
 router.use('/notifications', notificationRoutes);
 

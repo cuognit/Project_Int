@@ -1009,6 +1009,13 @@ async function seedDatabase() {
           subtotal,
           shippingFee,
           totalAmount,
+          paymentMethod: "COD",
+          paymentStatus:
+            status === "COMPLETED"
+              ? "PAID"
+              : status === "CANCELLED"
+                ? "CANCELLED"
+                : "PENDING",
 
           note: generateNote(),
 

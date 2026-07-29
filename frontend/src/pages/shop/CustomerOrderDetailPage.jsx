@@ -4,6 +4,7 @@ import { cancelOrder, getOrder } from "../../api/orderApi.js";
 import CancelOrderModal from "../../components/orders/CancelOrderModal.jsx";
 import OrderStatusBadge from "../../components/orders/OrderStatusBadge.jsx";
 import OrderTrackingSteps from "../../components/orders/OrderTrackingSteps.jsx";
+import PaymentStatusBadge from "../../components/orders/PaymentStatusBadge.jsx";
 import { formatCurrency } from "../../utils/formatCurrency.js";
 import { formatDate } from "../../utils/formatDate.js";
 
@@ -62,7 +63,8 @@ export default function CustomerOrderDetailPage() {
           <p className="mt-1 text-xs text-slate-400">Đặt lúc {formatDate(order.createdAt)}</p>
         </div>
         <div className="flex items-center gap-3">
-          {order.status === "PENDING" && (
+          {order.status === "PENDING"
+            && !(order.paymentMethod === "VNPAY" && ["PENDING", "REFUNDING"].includes(order.paymentStatus)) && (
             <button
               onClick={() => {
                 setCancelError("");
@@ -113,7 +115,12 @@ export default function CustomerOrderDetailPage() {
           </section>
 
           <section className="rounded-3xl border border-orange-100 bg-white p-5">
-            <h2 className="border-b border-slate-100 pb-3 text-sm font-black text-slate-800">Thanh toán COD</h2>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h2 className="text-sm font-black text-slate-800">
+                Thanh toán {order.paymentMethod === "VNPAY" ? "VNPay" : "COD"}
+              </h2>
+              <PaymentStatusBadge status={order.paymentStatus} />
+            </div>
             <div className="space-y-3 py-4 text-xs">
               <div className="flex justify-between text-slate-500"><span>Tạm tính</span><span>{formatCurrency(Number(order.subtotal))}</span></div>
               <div className="flex justify-between text-slate-500"><span>Phí vận chuyển</span><span className="font-bold text-emerald-600">{Number(order.shippingFee) === 0 ? "Miễn phí" : formatCurrency(Number(order.shippingFee))}</span></div>
@@ -121,6 +128,12 @@ export default function CustomerOrderDetailPage() {
                 <div className="flex justify-between font-bold text-emerald-600">
                   <span>Voucher {order.voucherCode}</span>
                   <span>-{formatCurrency(Number(order.discountAmount))}</span>
+                </div>
+              )}
+              {order.payment?.transactionNo && (
+                <div className="flex justify-between text-slate-500">
+                  <span>Mã giao dịch VNPay</span>
+                  <span className="font-semibold text-slate-700">{order.payment.transactionNo}</span>
                 </div>
               )}
             </div>
