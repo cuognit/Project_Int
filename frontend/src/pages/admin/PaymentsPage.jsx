@@ -24,6 +24,7 @@ const statuses = [
   ["REFUND_FAILED", "Hoàn lỗi"],
 ];
 
+// Quản lý tra cứu, đối soát và hoàn tiền các giao dịch.
 export default function PaymentsPage() {
   const today = new Date();
   const monthAgo = new Date(today);
@@ -43,6 +44,7 @@ export default function PaymentsPage() {
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundReason, setRefundReason] = useState("");
 
+  // Tải danh sách giao dịch theo bộ lọc và trang hiện tại.
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -60,6 +62,7 @@ export default function PaymentsPage() {
     return () => window.clearTimeout(timer);
   }, [load]);
 
+  // Tải và mở chi tiết giao dịch được chọn.
   const openDetail = async (id) => {
     setActionLoading(`detail-${id}`);
     try {
@@ -71,6 +74,7 @@ export default function PaymentsPage() {
     }
   };
 
+  // Đối soát giao dịch với VNPay rồi làm mới dữ liệu.
   const reconcile = async (payment) => {
     setActionLoading(`reconcile-${payment.id}`);
     setError("");
@@ -85,6 +89,7 @@ export default function PaymentsPage() {
     }
   };
 
+  // Gửi yêu cầu hoàn tiền cùng lý do đã nhập.
   const submitRefund = async () => {
     if (!selected || refundReason.trim().length < 10) return;
     setActionLoading(`refund-${selected.id}`);

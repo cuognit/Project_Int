@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import Pagination from '../../components/common/Pagination.jsx';
 import ScrollReveal from '../../components/common/ScrollReveal.jsx';
 
+// Hiển thị danh sách sản phẩm có tìm kiếm, lọc và phân trang.
 export default function ProductsListPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,7 @@ export default function ProductsListPage() {
 
   const { addToCart, isAuthenticated, cartError, cartLoading } = useAuth();
 
+  // Tải sản phẩm theo trang, từ khóa và danh mục đang chọn.
   const fetchProductsList = (page = 1, search = '') => {
     setLoading(true);
     getProducts({ page, limit: 16, search, categoryId: categoryId || undefined })
@@ -89,6 +91,7 @@ export default function ProductsListPage() {
     return list.sort((a, b) => b.id - a.id);
   }, [products, sortBy]);
 
+  // Thêm sản phẩm vào giỏ và phản hồi lỗi nghiệp vụ nếu có.
   const handleAddToCart = async (product, e) => {
     e.preventDefault();
     e.stopPropagation();

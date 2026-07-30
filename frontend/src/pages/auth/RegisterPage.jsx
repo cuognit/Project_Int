@@ -10,6 +10,7 @@ const initialForm = {
   address: "",
 };
 
+// Thu thập, xác thực và gửi thông tin đăng ký tài khoản mới.
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
@@ -24,6 +25,7 @@ export default function RegisterPage() {
     setError("");
   };
 
+  // Gửi biểu mẫu hợp lệ và chuyển người dùng tới trang đăng nhập.
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitting(true);

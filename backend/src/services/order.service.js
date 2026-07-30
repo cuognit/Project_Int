@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { col, Op, where as sequelizeWhere } from "sequelize";
+import { col, fn, Op, where as sequelizeWhere } from "sequelize";
 import sequelize from "../config/database.js";
 import {
   Cart,
@@ -57,9 +57,11 @@ const makeOrderCode = () => {
   return `DH-${date}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 };
 
+// Lấy đơn hàng cùng đầy đủ dữ liệu liên quan theo mã định danh.
 export const getOrderById = (orderId) =>
   Order.findByPk(orderId, { include: orderIncludes });
 
+// Lấy danh sách đơn hàng và giới hạn theo người dùng khi được yêu cầu.
 export const getOrders = ({ userId } = {}) => {
   const where = userId ? { userId } : {};
   return Order.findAll({
@@ -77,6 +79,105 @@ export const getOrders = ({ userId } = {}) => {
   });
 };
 
+// Tìm kiếm và phân trang đơn hàng cho khu vực quản trị.
+export const getAdminOrders = async ({ page, limit, status, search }) => {
+  const searchWhere = {};
+  if (search) {
+    const pattern = `%${search}%`;
+    searchWhere[Op.or] = [
+      { orderCode: { [Op.iLike]: pattern } },
+      { shippingName: { [Op.iLike]: pattern } },
+      { shippingPhone: { [Op.iLike]: pattern } },
+    ];
+  }
+  const where = {
+    ...searchWhere,
+    ...(status === "ALL" ? {} : { status }),
+  };
+
+  const [{ rows, count }, statusCounts] = await Promise.all([
+    Order.findAndCountAll({
+      attributes: [
+        "id",
+        "userId",
+        "orderCode",
+        "status",
+        "shippingName",
+        "shippingPhone",
+        "totalAmount",
+        "paymentMethod",
+        "paymentStatus",
+        "createdAt",
+      ],
+      where,
+      include: [{
+        model: User,
+        as: "user",
+        attributes: ["id", "fullName", "email"],
+      }],
+      order: [["createdAt", "DESC"]],
+      limit,
+      offset: (page - 1) * limit,
+      distinct: true,
+    }),
+    Order.findAll({
+      attributes: ["status", [fn("COUNT", col("id")), "count"]],
+      where: searchWhere,
+      group: ["status"],
+      raw: true,
+    }),
+  ]);
+
+  const counts = {
+    ALL: 0,
+    PENDING: 0,
+    CONFIRMED: 0,
+    SHIPPING: 0,
+    COMPLETED: 0,
+    CANCELLED: 0,
+  };
+  statusCounts.forEach((item) => {
+    const value = Number(item.count || 0);
+    counts[item.status] = value;
+    counts.ALL += value;
+  });
+
+  return {
+    items: rows,
+    counts,
+    pagination: {
+      page,
+      limit,
+      totalItems: count,
+      totalPages: Math.max(1, Math.ceil(count / limit)),
+    },
+  };
+};
+
+// Đếm đơn hàng theo từng trạng thái để hiển thị trên dashboard.
+export const getAdminOrderCounts = async () => {
+  const statusCounts = await Order.findAll({
+    attributes: ["status", [fn("COUNT", col("id")), "count"]],
+    group: ["status"],
+    raw: true,
+  });
+  const counts = {
+    ALL: 0,
+    PENDING: 0,
+    CONFIRMED: 0,
+    SHIPPING: 0,
+    COMPLETED: 0,
+    CANCELLED: 0,
+  };
+  statusCounts.forEach((item) => {
+    const value = Number(item.count || 0);
+    counts[item.status] = value;
+    counts.ALL += value;
+  });
+  return counts;
+};
+
+// Lấy lịch sử đơn hàng của người dùng với bộ lọc và phân trang.
 export const getMyOrders = async (
   userId,
   { page, limit, status, search },
@@ -153,6 +254,7 @@ export const getMyOrders = async (
   };
 };
 
+// Tạo đơn từ giỏ hàng, giữ voucher và khởi tạo thanh toán trong transaction.
 export const createOrder = async (userId, shippingInfo, ipAddress) => {
   const result = await sequelize.transaction(async (transaction) => {
     const pricing = await getCartPricing(userId, { transaction, lock: true });
@@ -260,6 +362,7 @@ export const createOrder = async (userId, shippingInfo, ipAddress) => {
   return { ...order.toJSON(), paymentUrl: result.paymentUrl };
 };
 
+// Chuyển trạng thái đơn hàng và thực hiện các tác vụ thanh toán liên quan.
 export const updateOrderStatus = async (orderId, status, requestedBy = "admin", ipAddress) => {
   const current = await Order.findByPk(orderId);
   if (!current) throw serviceError(404, "Không tìm thấy đơn hàng");
@@ -328,6 +431,7 @@ export const updateOrderStatus = async (orderId, status, requestedBy = "admin", 
   });
 };
 
+// Hủy đơn của người dùng, hoàn tồn kho và giải phóng voucher khi cần.
 export const cancelOrder = async (userId, orderId, ipAddress) => {
   const current = await Order.findOne({ where: { id: orderId, userId } });
   if (!current) throw serviceError(404, "Không tìm thấy đơn hàng");

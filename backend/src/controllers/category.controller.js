@@ -21,6 +21,7 @@ const handleError = (error, res, next) => {
   return next(error);
 };
 
+// Trả về danh sách danh mục sản phẩm.
 export const listCategories = async (_req, res, next) => {
   try {
     return res.status(200).json({
@@ -32,6 +33,7 @@ export const listCategories = async (_req, res, next) => {
   }
 };
 
+// Tạo danh mục mới sau khi kiểm tra dữ liệu đầu vào.
 export const createCategory = async (req, res, next) => {
   const name = parseName(req.body);
   if (!name) {
@@ -50,6 +52,7 @@ export const createCategory = async (req, res, next) => {
   }
 };
 
+// Cập nhật tên của một danh mục hiện có.
 export const updateCategory = async (req, res, next) => {
   const id = parseId(req.params.categoryId);
   const name = parseName(req.body);
@@ -69,6 +72,7 @@ export const updateCategory = async (req, res, next) => {
   }
 };
 
+// Xóa danh mục khi không vi phạm các ràng buộc nghiệp vụ.
 export const deleteCategory = async (req, res, next) => {
   const id = parseId(req.params.categoryId);
   if (!id) {

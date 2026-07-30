@@ -12,6 +12,7 @@ const scopeFor = (user) =>
     ? { audience: "ADMIN" }
     : { audience: "USER", recipientUserId: user.id };
 
+// Chuyển thông báo từ model sang cấu trúc an toàn cho API.
 export const serializeNotification = (notification) => ({
   id: notification.id,
   type: notification.type,
@@ -23,6 +24,7 @@ export const serializeNotification = (notification) => ({
   createdAt: notification.createdAt,
 });
 
+// Tạo nhiều thông báo và phát sự kiện realtime sau khi lưu thành công.
 export const createNotifications = async (payloads, { transaction } = {}) => {
   const notifications = await Notification.bulkCreate(payloads, {
     transaction,
@@ -42,11 +44,13 @@ export const createNotifications = async (payloads, { transaction } = {}) => {
   return notifications;
 };
 
+// Đếm thông báo chưa đọc trong phạm vi của người dùng.
 export const getUnreadCount = (user) =>
   Notification.count({
     where: { ...scopeFor(user), readAt: null },
   });
 
+// Lấy các thông báo mới nhất trong phạm vi được phép.
 export const getNotifications = async (user, limit) => {
   const scope = scopeFor(user);
   const [items, unreadCount] = await Promise.all([
@@ -63,6 +67,7 @@ export const getNotifications = async (user, limit) => {
   };
 };
 
+// Đánh dấu thông báo thuộc quyền truy cập của người dùng là đã đọc.
 export const markAsRead = async (user, notificationId) => {
   const notification = await Notification.findOne({
     where: { id: notificationId, ...scopeFor(user) },

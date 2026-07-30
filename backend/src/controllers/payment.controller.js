@@ -13,6 +13,7 @@ const handleError = (error, res, next) => error.statusCode
   ? res.status(error.statusCode).json({ success: false, message: error.message })
   : next(error);
 
+// Tiếp nhận và xử lý thông báo kết quả thanh toán từ VNPay.
 export const vnpayIpn = async (req, res) => {
   try {
     return res.json(await handleVnpayIpn(req.query));
@@ -21,6 +22,7 @@ export const vnpayIpn = async (req, res) => {
   }
 };
 
+// Xác minh kết quả VNPay và chuyển người dùng về trang kết quả.
 export const vnpayReturn = async (req, res, next) => {
   try {
     return res.redirect(await buildReturnRedirect(req.query));
@@ -29,6 +31,7 @@ export const vnpayReturn = async (req, res, next) => {
   }
 };
 
+// Lấy danh sách giao dịch thanh toán cho quản trị viên.
 export const listAdminPayments = async (req, res, next) => {
   const validation = adminPaymentsQuerySchema.safeParse(req.query);
   if (!validation.success) return validationError(res);
@@ -39,6 +42,7 @@ export const listAdminPayments = async (req, res, next) => {
   }
 };
 
+// Lấy chi tiết một giao dịch thanh toán.
 export const getAdminPayment = async (req, res, next) => {
   const id = paymentIdSchema.safeParse(req.params.paymentId);
   if (!id.success) return validationError(res, "ID giao dịch không hợp lệ");
@@ -49,6 +53,7 @@ export const getAdminPayment = async (req, res, next) => {
   }
 };
 
+// Đối soát trạng thái giao dịch với hệ thống VNPay.
 export const reconcileAdminPayment = async (req, res, next) => {
   const id = paymentIdSchema.safeParse(req.params.paymentId);
   if (!id.success) return validationError(res, "ID giao dịch không hợp lệ");
@@ -64,6 +69,7 @@ export const reconcileAdminPayment = async (req, res, next) => {
   }
 };
 
+// Yêu cầu hoàn tiền cho giao dịch đủ điều kiện.
 export const refundAdminPayment = async (req, res, next) => {
   const id = paymentIdSchema.safeParse(req.params.paymentId);
   const body = refundPaymentSchema.safeParse(req.body);

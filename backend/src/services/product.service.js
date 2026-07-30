@@ -13,6 +13,7 @@ const CATEGORY_INCLUDE = [{
   required: true,
 }];
 
+// Lọc và phân trang sản phẩm theo phạm vi khách hàng hoặc quản trị.
 export const getProducts = async (params = {}, { admin = false } = {}) => {
   const { page, limit, search, status, stock, categoryId } = params;
 
@@ -72,6 +73,7 @@ export const getProducts = async (params = {}, { admin = false } = {}) => {
   });
 };
 
+// Lấy chi tiết sản phẩm với phạm vi dữ liệu phù hợp vai trò.
 export const getProductById = (id, { admin = false } = {}) =>
   Product.findOne({
     attributes: PRODUCT_FIELDS,
@@ -82,22 +84,26 @@ export const getProductById = (id, { admin = false } = {}) =>
     },
   });
 
+// Tìm sản phẩm trùng SKU, có thể loại trừ sản phẩm đang cập nhật.
 export const findProductBySku = (sku, excludeId) => {
   const where = { sku };
   if (excludeId) where.id = { [Op.ne]: excludeId };
   return Product.findOne({ where });
 };
 
+// Tạo sản phẩm sau khi xác minh SKU chưa được sử dụng.
 export const createProduct = async (payload) => {
   const product = await Product.create(payload);
   return getProductById(product.id, { admin: true });
 };
 
+// Cập nhật sản phẩm và kiểm tra xung đột SKU.
 export const updateProduct = async (product, payload) => {
   await product.update(payload);
   return getProductById(product.id, { admin: true });
 };
 
+// Xóa sản phẩm sau khi kiểm tra các ràng buộc dữ liệu.
 export const deleteProduct = async (product) => {
   const [orderItemCount, cartItemCount] = await Promise.all([
     OrderItem.count({ where: { productId: product.id } }),

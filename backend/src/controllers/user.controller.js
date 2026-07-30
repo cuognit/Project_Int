@@ -2,6 +2,7 @@ import * as userService from "../services/user.service.js";
 import { updateUserAccessSchema } from "../validators/user.validator.js";
 import { disconnectUserSessions } from "../socket/notification.gateway.js";
 
+// Lấy danh sách người dùng dành cho quản trị viên.
 export const listUsers = async (req, res, next) => {
   try {
     const users = await userService.getUsers();
@@ -14,6 +15,7 @@ export const listUsers = async (req, res, next) => {
   }
 };
 
+// Lấy thông tin chi tiết của một người dùng.
 export const getUserDetail = async (req, res, next) => {
   try {
     const { userId } = req.params;
@@ -33,6 +35,7 @@ export const getUserDetail = async (req, res, next) => {
   }
 };
 
+// Lấy danh sách người dùng đã phát sinh đơn hàng.
 export const listUserHaveOrders = async (req, res, next) => {
   try {
     const users = await userService.getAllUserHaveOrders();
@@ -51,6 +54,7 @@ export const listUserHaveOrders = async (req, res, next) => {
   }
 };
 
+// Lấy lịch sử đơn hàng của một người dùng cụ thể.
 export const listOrdersByUserId = async (req, res, next) => {
   try {
     const { userId } = req.params;
@@ -68,6 +72,7 @@ export const listOrdersByUserId = async (req, res, next) => {
   }
 };
 
+// Trả về hồ sơ của người dùng đang đăng nhập.
 export const getProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -95,6 +100,7 @@ export const getProfile = async (req, res, next) => {
   }
 };
 
+// Cập nhật thông tin hồ sơ của người dùng hiện tại.
 export const updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -110,6 +116,7 @@ export const updateProfile = async (req, res, next) => {
   }
 };
 
+// Đổi mật khẩu sau khi xác minh mật khẩu hiện tại.
 export const changePassword = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -139,6 +146,7 @@ export const changePassword = async (req, res, next) => {
   }
 };
 
+// Cho phép quản trị viên cập nhật hồ sơ người dùng.
 export const adminUpdateUser = async (req, res, next) => {
   try {
     const { userId } = req.params;
@@ -154,6 +162,7 @@ export const adminUpdateUser = async (req, res, next) => {
   }
 };
 
+// Cập nhật vai trò hoặc trạng thái truy cập của người dùng.
 export const updateUserAccess = async (req, res, next) => {
   const validation = updateUserAccessSchema.safeParse(req.body);
   if (!validation.success) {

@@ -5,6 +5,7 @@ import PaymentStatusBadge from "../../components/orders/PaymentStatusBadge.jsx";
 
 const terminalStatuses = new Set(["PAID", "FAILED", "REFUNDED", "CANCELLED"]);
 
+// Đọc kết quả VNPay từ URL và hiển thị trạng thái thanh toán.
 export default function VnpayResultPage() {
   const [params] = useSearchParams();
   const orderId = params.get("orderId");

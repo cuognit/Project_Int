@@ -31,6 +31,7 @@ const dateWhere = (from, to) => {
   return where;
 };
 
+// Tìm kiếm và phân trang giao dịch thanh toán cho quản trị viên.
 export const listAdminPayments = async ({ page, limit, status, search, from, to }) => {
   const where = dateWhere(from, to);
   if (status !== "ALL") where.status = status;
@@ -89,6 +90,7 @@ export const listAdminPayments = async ({ page, limit, status, search, from, to 
   };
 };
 
+// Lấy chi tiết giao dịch cùng đơn hàng và lịch sử thao tác.
 export const getAdminPayment = async (id) => {
   const payment = await Payment.findByPk(id, {
     include: [
@@ -107,6 +109,7 @@ export const getAdminPayment = async (id) => {
 
 const recordAction = (payload) => PaymentAction.create(payload);
 
+// Đối soát giao dịch với VNPay và ghi nhận thao tác quản trị.
 export const reconcilePayment = async (id, adminUserId, ipAddress) => {
   const payment = await Payment.findByPk(id);
   if (!payment) throw serviceError(404, "Không tìm thấy giao dịch");
@@ -182,6 +185,7 @@ export const reconcilePayment = async (id, adminUserId, ipAddress) => {
   }
 };
 
+// Hoàn tiền giao dịch hợp lệ và lưu vết người thực hiện.
 export const refundPayment = async (id, adminUserId, ipAddress, reason) => {
   const payment = await Payment.findByPk(id);
   if (!payment) throw serviceError(404, "Không tìm thấy giao dịch");

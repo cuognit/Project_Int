@@ -3,7 +3,7 @@ import ScrollReveal from '../../components/common/ScrollReveal.jsx';
 
 export default function AboutPage() {
   return (
-    <div className="space-y-10 select-none max-w-5xl mx-auto">
+    <div className="w-full space-y-10 select-none">
       
       {/* Hero Banner */}
       <div className="relative bg-gradient-to-r from-[#ee4d2d] to-[#ff7337] rounded-3xl p-8 sm:p-12 text-white overflow-hidden shadow-xl">

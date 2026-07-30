@@ -7,6 +7,7 @@ const addColumn = async (table, column, definition) => {
   if (!tableInfo[column]) await qi.addColumn(table, column, definition);
 };
 
+// Bổ sung các cột thanh toán còn thiếu theo cách có thể chạy lặp lại.
 export const migratePayments = async () => {
   const qi = sequelize.getQueryInterface();
   const tables = await qi.showAllTables();

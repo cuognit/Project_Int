@@ -1,6 +1,11 @@
 import bcrypt from "bcryptjs";
 import { Op, UniqueConstraintError } from "sequelize";
+import sequelize from "../config/database.js";
 import { RefreshSession, User } from "../models/index.js";
+import {
+  normalizeGoogleFullName,
+  verifyGoogleToken,
+} from "./googleAuth.service.js";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   createAccessToken,
@@ -33,6 +38,35 @@ const invalidRefreshToken = () => {
   return error;
 };
 
+const issueUserSession = async (user, transaction = null) => {
+  await RefreshSession.destroy({
+    where: {
+      userId: user.id,
+      expiresAt: { [Op.lt]: new Date() },
+    },
+    ...(transaction ? { transaction } : {}),
+  });
+
+  const tokens = createAuthTokens(user);
+  await RefreshSession.create(
+    {
+      id: tokens.refreshId,
+      userId: user.id,
+      tokenHash: hashRefreshToken(tokens.refreshToken),
+      expiresAt: tokens.refreshExpiresAt,
+    },
+    transaction ? { transaction } : {},
+  );
+
+  return {
+    user: publicUser(user),
+    accessToken: tokens.accessToken,
+    accessTokenExpiresIn: ACCESS_TOKEN_TTL_SECONDS,
+    refreshToken: tokens.refreshToken,
+  };
+};
+
+// Tạo tài khoản mới và phát hành bộ token đăng nhập ban đầu.
 export const registerUser = async (payload) => {
   const { fullName, email, password, phone, address } = payload;
   const existingUser = await User.findOne({
@@ -67,12 +101,13 @@ export const registerUser = async (payload) => {
   }
 };
 
+// Xác minh email, mật khẩu và phát hành phiên đăng nhập mới.
 export const loginUser = async ({ email, password }) => {
   const user = await User.findOne({
     where: { email: { [Op.iLike]: email } },
   });
 
-  if (!user || !(await bcrypt.compare(password, user.password))) {
+  if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
     throw invalidCredentials();
   }
   if (!user.isActive) {
@@ -81,29 +116,83 @@ export const loginUser = async ({ email, password }) => {
     throw error;
   }
 
-  await RefreshSession.destroy({
-    where: {
-      userId: user.id,
-      expiresAt: { [Op.lt]: new Date() },
-    },
-  });
-
-  const tokens = createAuthTokens(user);
-  await RefreshSession.create({
-    id: tokens.refreshId,
-    userId: user.id,
-    tokenHash: hashRefreshToken(tokens.refreshToken),
-    expiresAt: tokens.refreshExpiresAt,
-  });
-
-  return {
-    user: publicUser(user),
-    accessToken: tokens.accessToken,
-    accessTokenExpiresIn: ACCESS_TOKEN_TTL_SECONDS,
-    refreshToken: tokens.refreshToken,
-  };
+  return issueUserSession(user);
 };
 
+// Xác minh Google credential rồi đăng nhập hoặc tạo người dùng tương ứng.
+export const loginWithGoogle = async (credential) => {
+  const googlePayload = await verifyGoogleToken(credential);
+  const { sub, email, name } = googlePayload;
+  const normalizedEmail = email.toLowerCase();
+
+  const transaction = await sequelize.transaction();
+
+  try {
+    let user = await User.findOne({
+      where: { googleSub: sub },
+      transaction,
+    });
+
+    if (user) {
+      if (!user.isActive) {
+        const error = new Error("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên");
+        error.statusCode = 403;
+        throw error;
+      }
+    } else {
+      user = await User.findOne({
+        where: { email: { [Op.iLike]: normalizedEmail } },
+        transaction,
+      });
+
+      if (user) {
+        if (user.googleSub && user.googleSub !== sub) {
+          const error = new Error("Email này đã được liên kết với một tài khoản Google khác");
+          error.statusCode = 409;
+          throw error;
+        }
+
+        if (!user.isActive) {
+          const error = new Error("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên");
+          error.statusCode = 403;
+          throw error;
+        }
+
+        user.googleSub = sub;
+        await user.save({ transaction });
+      } else {
+        const fullName = normalizeGoogleFullName(name, normalizedEmail);
+        user = await User.create(
+          {
+            fullName,
+            email: normalizedEmail,
+            password: null,
+            googleSub: sub,
+            role: "customer",
+            isActive: true,
+          },
+          { transaction },
+        );
+      }
+    }
+
+    const sessionData = await issueUserSession(user, transaction);
+    await transaction.commit();
+    return sessionData;
+  } catch (error) {
+    await transaction.rollback();
+    if (error instanceof UniqueConstraintError) {
+      const conflictError = new Error(
+        "Email hoặc tài khoản Google này đang được liên kết bởi một thao tác khác",
+      );
+      conflictError.statusCode = 409;
+      throw conflictError;
+    }
+    throw error;
+  }
+};
+
+// Luân chuyển refresh token hợp lệ và cấp lại access token.
 export const refreshAccessToken = async (refreshToken) => {
   if (!refreshToken) throw invalidRefreshToken();
 
@@ -147,6 +236,7 @@ export const refreshAccessToken = async (refreshToken) => {
   };
 };
 
+// Thu hồi phiên đăng nhập gắn với refresh token.
 export const logoutUser = async (refreshToken) => {
   if (!refreshToken) return;
   await RefreshSession.update(

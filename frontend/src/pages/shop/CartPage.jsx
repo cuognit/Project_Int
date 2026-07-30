@@ -28,6 +28,7 @@ function QuantityInput({ value, stock, onChange }) {
   );
 }
 
+// Hiển thị giỏ hàng optimistic và chuẩn bị dữ liệu trước khi thanh toán.
 export default function CartPage() {
   const {
     cart,
@@ -43,6 +44,7 @@ export default function CartPage() {
   const navigate = useNavigate();
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+  // Đồng bộ toàn bộ thay đổi giỏ hàng trước khi mở trang checkout.
   const handleCheckout = async () => {
     setCheckoutLoading(true);
     await flushCartChanges();
@@ -50,7 +52,7 @@ export default function CartPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="w-full space-y-6">
       <div>
         <h1 className="text-2xl font-black text-slate-800">Giỏ Hàng Shopee</h1>
         <p className="mt-1 text-xs text-slate-400">

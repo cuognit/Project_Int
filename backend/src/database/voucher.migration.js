@@ -15,6 +15,7 @@ const addIndexIfMissing = async (queryInterface, tableName, fields, options) => 
   }
 };
 
+// Tạo cấu trúc và chỉ mục voucher còn thiếu theo cách có thể chạy lặp lại.
 export const migrateVouchers = async () => {
   const queryInterface = sequelize.getQueryInterface();
   if (!(await tableExists(queryInterface, "orders"))) return;

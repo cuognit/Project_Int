@@ -8,6 +8,7 @@ import {
 
 const DEBOUNCE_MS = 500;
 
+// Quản lý giỏ hàng optimistic và đồng bộ thay đổi tuần tự với backend.
 export default function useOptimisticCart({ user, isAuthInitializing }) {
   const [cart, setCart] = useState([]);
   const [cartLoading, setCartLoading] = useState(false);
@@ -27,6 +28,7 @@ export default function useOptimisticCart({ user, isAuthInitializing }) {
     setCartSyncing(pendingRef.current.size > 0);
   }, []);
 
+  // Gộp dữ liệu server với các thay đổi cục bộ chưa đồng bộ xong.
   const mergePending = useCallback((serverItems) => {
     const merged = new Map(
       serverItems.map((item) => [item.product.id, { ...item }]),
@@ -48,6 +50,7 @@ export default function useOptimisticCart({ user, isAuthInitializing }) {
     replaceCart(Array.from(merged.values()));
   }, [replaceCart]);
 
+  // Tải lại giỏ hàng chuẩn từ server khi đồng bộ thất bại.
   const recoverFromServer = useCallback(async () => {
     try {
       const data = await getCart();
@@ -59,6 +62,7 @@ export default function useOptimisticCart({ user, isAuthInitializing }) {
 
   const syncProductRef = useRef(null);
 
+  // Đồng bộ số lượng mong muốn của một sản phẩm theo thứ tự.
   const syncProduct = useCallback((productId) => {
     const entry = pendingRef.current.get(productId);
     if (!entry) return Promise.resolve();
@@ -126,6 +130,7 @@ export default function useOptimisticCart({ user, isAuthInitializing }) {
 
   syncProductRef.current = syncProduct;
 
+  // Ghi nhận số lượng mới và xếp lịch đồng bộ sau khoảng debounce.
   const queueQuantity = useCallback((
     product,
     desiredQuantity,
@@ -185,6 +190,7 @@ export default function useOptimisticCart({ user, isAuthInitializing }) {
       });
   }, [user?.id, isAuthInitializing, replaceCart, updateSyncing]);
 
+  // Thêm sản phẩm ngay trên giao diện rồi xếp lịch đồng bộ.
   const addToCart = useCallback((product, quantity = 1) => {
     if (cartLoading) throw new Error("Giỏ hàng đang được tải");
     const current = cartRef.current.find(
@@ -209,6 +215,7 @@ export default function useOptimisticCart({ user, isAuthInitializing }) {
     return Promise.resolve({ queued: true });
   }, [cartLoading, queueQuantity, replaceCart]);
 
+  // Đặt số lượng tuyệt đối cho sản phẩm trong giỏ hàng.
   const setCartQuantity = useCallback((productId, quantity) => {
     const current = cartRef.current.find(
       (item) => item.product.id === productId,
@@ -229,6 +236,7 @@ export default function useOptimisticCart({ user, isAuthInitializing }) {
     return Promise.resolve({ queued: true });
   }, [queueQuantity, replaceCart]);
 
+  // Tăng hoặc giảm số lượng sản phẩm theo một khoảng cho trước.
   const updateCartQuantity = useCallback((productId, delta) => {
     const current = cartRef.current.find(
       (item) => item.product.id === productId,
@@ -242,6 +250,7 @@ export default function useOptimisticCart({ user, isAuthInitializing }) {
   }, [setCartQuantity]);
 
   const removeFromCartRef = useRef(null);
+  // Xóa sản phẩm cục bộ và xếp lịch xóa trên backend.
   const removeFromCart = useCallback((productId) => {
     const current = cartRef.current.find(
       (item) => item.product.id === productId,
@@ -256,6 +265,7 @@ export default function useOptimisticCart({ user, isAuthInitializing }) {
   }, [queueQuantity, replaceCart]);
   removeFromCartRef.current = removeFromCart;
 
+  // Gửi ngay mọi thay đổi đang chờ trước khi rời trang hoặc thanh toán.
   const flushCartChanges = useCallback(async () => {
     let passes = 0;
     while (pendingRef.current.size && passes < 20) {
@@ -289,6 +299,7 @@ export default function useOptimisticCart({ user, isAuthInitializing }) {
     };
   }, [flushCartChanges]);
 
+  // Hủy các tác vụ chờ và đưa hook về trạng thái giỏ hàng ban đầu.
   const resetCart = useCallback(() => {
     generationRef.current += 1;
     pendingRef.current.forEach((entry) => {

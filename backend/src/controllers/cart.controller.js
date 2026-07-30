@@ -23,6 +23,7 @@ const invalidPayload = (res, validation) =>
     errors: formatValidationErrors(validation.error.issues),
   });
 
+// Lấy giỏ hàng hiện tại của người dùng đã đăng nhập.
 export const getCart = async (req, res, next) => {
   try {
     return res.status(200).json({
@@ -34,6 +35,7 @@ export const getCart = async (req, res, next) => {
   }
 };
 
+// Thêm sản phẩm hoặc tăng số lượng sản phẩm trong giỏ hàng.
 export const addItem = async (req, res, next) => {
   const validation = addCartItemSchema.safeParse(req.body);
   if (!validation.success) return invalidPayload(res, validation);
@@ -47,6 +49,7 @@ export const addItem = async (req, res, next) => {
   }
 };
 
+// Cập nhật số lượng của một sản phẩm trong giỏ hàng.
 export const updateItem = async (req, res, next) => {
   const productId = productIdSchema.safeParse(req.params.productId);
   const body = updateCartItemSchema.safeParse(req.body);
@@ -66,6 +69,7 @@ export const updateItem = async (req, res, next) => {
   }
 };
 
+// Xóa một sản phẩm khỏi giỏ hàng.
 export const removeItem = async (req, res, next) => {
   const productId = productIdSchema.safeParse(req.params.productId);
   if (!productId.success) return invalidPayload(res, productId);

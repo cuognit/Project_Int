@@ -1,14 +1,17 @@
+import "dotenv/config";
 import { Sequelize } from "sequelize";
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
+const dbUrl = process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/dummy_db";
+
+const sequelize = new Sequelize(dbUrl, {
   dialect: "postgres",
   logging: false,
-   dialectOptions: {
+  dialectOptions: {
     ssl: {
       require: true,
       rejectUnauthorized: false,
     },
-  }
+  },
 });
 
 export default sequelize;

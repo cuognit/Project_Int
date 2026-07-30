@@ -10,11 +10,13 @@ const authHttp = axios.create({
 let refreshPromise = null;
 let refreshGeneration = 0;
 
+// Vô hiệu hóa kết quả của yêu cầu làm mới token đang chờ.
 export const invalidatePendingRefresh = () => {
   refreshGeneration += 1;
   refreshPromise = null;
 };
 
+// Dùng chung một yêu cầu refresh để tránh nhiều lần làm mới token đồng thời.
 export const refreshSession = () => {
   if (!refreshPromise) {
     const generation = refreshGeneration;
@@ -39,6 +41,7 @@ export const refreshSession = () => {
   return refreshPromise;
 };
 
+// Đăng xuất phía server và luôn dọn sạch phiên cục bộ.
 export const logoutSession = async () => {
   invalidatePendingRefresh();
   try {

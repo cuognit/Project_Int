@@ -4,6 +4,7 @@ import { fn, col, literal } from "sequelize";
 import { User, Order, RefreshSession } from "../models/index.js";
 import sequelize from "../config/database.js";
 
+// Lấy danh sách người dùng cùng thông tin tổng hợp cần thiết.
 export const getUsers = async () => {
   const users = await User.findAll({
     attributes: [
@@ -57,12 +58,14 @@ export const getUsers = async () => {
   }));
 };
 
+// Lấy chi tiết người dùng theo mã định danh.
 export const getUserById = async (id) => {
   return User.findByPk(id, {
     attributes: { exclude: ["password"] },
   });
 };
 
+// Lấy các người dùng đã phát sinh ít nhất một đơn hàng.
 export const getAllUserHaveOrders = async () => {
   const users = await User.findAll({
     attributes: [
@@ -101,6 +104,7 @@ export const getAllUserHaveOrders = async () => {
 };
 
 
+// Lấy toàn bộ đơn hàng thuộc một người dùng.
 export const getOrdersByUserId = async (userId) => {
   const orders = await Order.findAll({
     where: { userId },
@@ -110,6 +114,7 @@ export const getOrdersByUserId = async (userId) => {
   return orders;
 };
 
+// Cập nhật hồ sơ cá nhân của người dùng.
 export const updateUserProfile = async (userId, { fullName, phone, address }) => {
   const user = await User.findByPk(userId);
   if (!user) {
@@ -135,6 +140,7 @@ export const updateUserProfile = async (userId, { fullName, phone, address }) =>
   };
 };
 
+// Xác minh mật khẩu hiện tại rồi lưu mật khẩu mới đã mã hóa.
 export const changeUserPassword = async (userId, currentPassword, newPassword) => {
   const user = await User.findByPk(userId);
   if (!user) {
@@ -157,6 +163,7 @@ export const changeUserPassword = async (userId, currentPassword, newPassword) =
   return { success: true, message: "Đổi mật khẩu thành công" };
 };
 
+// Cho phép quản trị viên chỉnh sửa hồ sơ người dùng.
 export const adminUpdateUser = async (userId, { fullName, phone, address }) => {
   const user = await User.findByPk(userId);
   if (!user) {
@@ -181,6 +188,7 @@ export const adminUpdateUser = async (userId, { fullName, phone, address }) => {
   };
 };
 
+// Cập nhật quyền truy cập và ngắt các phiên không còn hợp lệ.
 export const updateUserAccess = async (
   actorUserId,
   userId,

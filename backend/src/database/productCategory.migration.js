@@ -10,6 +10,7 @@ const tableExists = async (queryInterface, tableName) => {
   );
 };
 
+// Đồng bộ quan hệ danh mục sản phẩm và dữ liệu mặc định cần thiết.
 export const migrateProductCategories = async () => {
   const queryInterface = sequelize.getQueryInterface();
 

@@ -1,6 +1,9 @@
 import { NavLink } from "react-router-dom";
+import { useAdminOrderQueue } from "../../../context/AdminOrderQueueContext.jsx";
 
 export default function AdminSidebar() {
+  const { pendingCount } = useAdminOrderQueue();
+
   return (
     <aside className="w-64 shrink-0 border-r border-slate-200 bg-white p-5 flex flex-col justify-between select-none">
       <div>
@@ -36,6 +39,27 @@ export default function AdminSidebar() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             Tổng quan (Dashboard)
+          </NavLink>
+
+          <NavLink
+            to="/admin/orders"
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-4 py-3 text-xs font-bold transition-all duration-200 ${
+                isActive
+                  ? "bg-indigo-50 text-indigo-700 shadow-2xs"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              }`
+            }
+          >
+            <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5h6m-6 4h6m-6 4h3m-5 8h10a2 2 0 002-2V5a2 2 0 00-2-2h-1.5a2.5 2.5 0 00-5 0H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span className="min-w-0 flex-1">Đơn hàng</span>
+            {pendingCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[9px] font-black text-white">
+                {pendingCount > 99 ? "99+" : pendingCount}
+              </span>
+            )}
           </NavLink>
 
           <NavLink

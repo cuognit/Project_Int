@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
+// Chỉ hiển thị route khách và chuyển người đã đăng nhập về trang phù hợp.
 export default function GuestRoute() {
   const { isAuthenticated, isAuthInitializing, isAdmin } = useAuth();
 

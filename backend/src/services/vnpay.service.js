@@ -29,6 +29,7 @@ const config = () => {
   return values;
 };
 
+// Định dạng thời gian theo chuẩn tham số mà VNPay yêu cầu.
 export const formatVnpDate = (date) => {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -61,6 +62,7 @@ const safeEqual = (left, right) => {
   return crypto.timingSafeEqual(Buffer.from(left), Buffer.from(right));
 };
 
+// Xác minh chữ ký của callback do VNPay gửi về.
 export const verifyVnpayCallback = (query) => {
   const received = String(query.vnp_SecureHash || "").toLowerCase();
   const params = Object.fromEntries(
@@ -70,6 +72,7 @@ export const verifyVnpayCallback = (query) => {
   return safeEqual(received, sign(sortedQuery(params)));
 };
 
+// Khởi tạo giao dịch và tạo URL thanh toán VNPay cho đơn hàng.
 export const createVnpayPayment = async (order, ipAddress, transaction) => {
   const settings = config();
   const now = new Date();
@@ -116,6 +119,7 @@ const applyCallbackFields = (payment, query, transaction) => payment.update({
   lastCallbackAt: new Date(),
 }, { transaction });
 
+// Xử lý IPN và đồng bộ kết quả thanh toán vào đơn hàng.
 export const handleVnpayIpn = async (query) => {
   if (!verifyVnpayCallback(query)) return { RspCode: "97", Message: "Invalid checksum" };
   if (query.vnp_TmnCode !== config().tmnCode) {
@@ -173,6 +177,7 @@ export const handleVnpayIpn = async (query) => {
   return { RspCode: "00", Message: "Confirm success" };
 };
 
+// Xác minh callback trình duyệt và tạo URL chuyển hướng kết quả.
 export const buildReturnRedirect = async (query) => {
   const settings = config();
   const valid = verifyVnpayCallback(query);
@@ -218,6 +223,7 @@ const verifyApiResponse = (result) => {
   return safeEqual(String(result.vnp_SecureHash).toLowerCase(), sign(data));
 };
 
+// Gửi yêu cầu hoàn tiền cho đơn đã thanh toán và cập nhật giao dịch.
 export const refundPaidOrder = async (orderId, requestedBy, ipAddress, reason = null) => {
   const settings = config();
   const prepared = await sequelize.transaction(async (transaction) => {
@@ -316,6 +322,7 @@ export const refundPaidOrder = async (orderId, requestedBy, ipAddress, reason = 
   if (!successful) throw serviceError(502, result.vnp_Message || "VNPay từ chối hoàn tiền");
 };
 
+// Tra cứu trạng thái hiện tại của giao dịch trực tiếp từ VNPay.
 export const queryVnpayTransaction = async (payment, ipAddress = "127.0.0.1") => {
   const settings = config();
   const requestId = crypto.randomUUID().replaceAll("-", "").slice(0, 32);
@@ -342,6 +349,7 @@ export const queryVnpayTransaction = async (payment, ipAddress = "127.0.0.1") =>
   return { result, requestId };
 };
 
+// Đánh dấu các giao dịch chờ thanh toán đã quá thời hạn.
 export const expirePendingPayments = async () => {
   const expired = await Payment.findAll({
     where: { status: "PENDING", expiresAt: { [Op.lt]: new Date() } },

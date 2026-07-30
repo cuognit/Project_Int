@@ -37,6 +37,7 @@ const addCheckConstraint = async (
   });
 };
 
+// Tạo và đồng bộ các bảng hỗ trợ nghiệp vụ thương mại còn thiếu.
 export const migrateCommerceSupportTables = async () => {
   const queryInterface = sequelize.getQueryInterface();
 

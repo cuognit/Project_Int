@@ -4,6 +4,7 @@ import { getProduct } from '../../api/productApi.js';
 import { formatCurrency } from '../../utils/formatCurrency.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 
+// Hiển thị chi tiết sản phẩm và hỗ trợ chọn số lượng để thêm vào giỏ.
 export default function ShopProductDetailPage() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
@@ -28,6 +29,7 @@ export default function ShopProductDetailPage() {
       });
   }, [id]);
 
+  // Thêm số lượng đã chọn vào giỏ hàng.
   const handleAddToCart = async () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: location } });

@@ -1,6 +1,4 @@
-import { randomBytes } from "node:crypto";
-import bcrypt from "bcryptjs";
-import { DataTypes, Op } from "sequelize";
+import { DataTypes } from "sequelize";
 import sequelize from "../config/database.js";
 
 const USERS_TABLE = "users";
@@ -12,7 +10,7 @@ const hasUsersTable = async (queryInterface) => {
     return tableName === USERS_TABLE;
   });
 };
-
+// Bổ sung các cột xác thực người dùng còn thiếu theo cách an toàn.
 export const migrateUserAuthColumns = async () => {
   const queryInterface = sequelize.getQueryInterface();
 
@@ -25,24 +23,18 @@ export const migrateUserAuthColumns = async () => {
       type: DataTypes.STRING(255),
       allowNull: true,
     });
-    columns = await queryInterface.describeTable(USERS_TABLE);
-  }
-
-  const unusableLegacyPassword = await bcrypt.hash(
-    randomBytes(32).toString("hex"),
-    12,
-  );
-
-  await queryInterface.bulkUpdate(
-    USERS_TABLE,
-    { password: unusableLegacyPassword },
-    { password: { [Op.is]: null } },
-  );
-
-  if (columns.password.allowNull) {
+  } else if (!columns.password.allowNull) {
     await queryInterface.changeColumn(USERS_TABLE, "password", {
       type: DataTypes.STRING(255),
-      allowNull: false,
+      allowNull: true,
+    });
+  }
+
+  if (!columns.google_sub) {
+    await queryInterface.addColumn(USERS_TABLE, "google_sub", {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      unique: true,
     });
   }
 

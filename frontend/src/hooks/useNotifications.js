@@ -9,7 +9,9 @@ import {
   connectNotificationSocket,
   disconnectNotificationSocket,
 } from "../socket/notificationSocket.js";
+import { emitAdminOrderQueueChanged } from "../utils/adminOrderQueueEvents.js";
 
+// Quản lý danh sách, số chưa đọc và kết nối thông báo realtime.
 export default function useNotifications() {
   const {
     user,
@@ -52,22 +54,42 @@ export default function useNotifications() {
         setUnreadCount((count) => count + 1);
         setLatestNotification(notification);
       }
+      if (
+        user?.role === "admin"
+        && ["NEW_ORDER", "ORDER_CANCELLED"].includes(notification.type)
+      ) {
+        emitAdminOrderQueueChanged({
+          action: notification.type,
+          orderId: notification.orderId,
+        });
+      }
     };
-    const handleConnect = () => setError("");
+    const handleOrderQueueChanged = (payload) => {
+      if (user?.role === "admin") emitAdminOrderQueueChanged(payload);
+    };
+    const handleConnect = () => {
+      setError("");
+      if (user?.role === "admin") {
+        emitAdminOrderQueueChanged({ action: "socket-reconnected" });
+      }
+    };
     const handleConnectError = () => {
       setError("Mất kết nối thông báo realtime. Hệ thống đang thử kết nối lại.");
     };
     activeSocket.on("notification:new", handleNotification);
+    activeSocket.on("admin:order-queue-changed", handleOrderQueueChanged);
     activeSocket.on("connect", handleConnect);
     activeSocket.on("connect_error", handleConnectError);
     return () => {
       activeSocket.off("notification:new", handleNotification);
+      activeSocket.off("admin:order-queue-changed", handleOrderQueueChanged);
       activeSocket.off("connect", handleConnect);
       activeSocket.off("connect_error", handleConnectError);
       disconnectNotificationSocket(activeSocket);
     };
-  }, [accessToken, isAuthenticated, isAuthInitializing]);
+  }, [accessToken, isAuthenticated, isAuthInitializing, user?.role]);
 
+  // Tải danh sách thông báo mới nhất khi người dùng mở bảng thông báo.
   const loadNotifications = useCallback(async () => {
     if (!isAuthenticated) return;
     const generation = generationRef.current;
@@ -90,6 +112,7 @@ export default function useNotifications() {
     }
   }, [isAuthenticated]);
 
+  // Cập nhật trạng thái đã đọc ở cả giao diện và backend.
   const markAsRead = useCallback(async (notification) => {
     if (notification.readAt) return notification;
     const readAt = new Date().toISOString();

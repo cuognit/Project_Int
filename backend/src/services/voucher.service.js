@@ -27,6 +27,7 @@ const includeRelations = [
   { model: User, as: "users", attributes: ["id", "fullName", "email"], through: { attributes: [] } },
 ];
 
+// Tính giá trị giỏ hàng và nhóm sản phẩm đủ điều kiện áp dụng voucher.
 export const getCartPricing = async (userId, { transaction, lock = false } = {}) => {
   const cart = await Cart.findOne({
     where: { userId, status: "ACTIVE" },
@@ -72,6 +73,7 @@ const getRelations = async (voucher, transaction) => {
   return { categories, users };
 };
 
+// Đánh giá toàn bộ điều kiện áp dụng voucher cho người dùng và giỏ hàng.
 export const evaluateVoucher = async ({
   voucher,
   userId,
@@ -139,13 +141,7 @@ export const evaluateVoucher = async ({
     );
   }
 
-  let discountAmount = voucher.discountType === "FIXED"
-    ? Number(voucher.discountValue)
-    : eligibleSubtotal * Number(voucher.discountValue) / 100;
-  if (voucher.discountType === "PERCENTAGE" && voucher.maxDiscountAmount !== null) {
-    discountAmount = Math.min(discountAmount, Number(voucher.maxDiscountAmount));
-  }
-  discountAmount = Math.min(eligibleSubtotal, Math.round(discountAmount));
+  const discountAmount = calculateDiscountAmount(voucher, eligibleSubtotal);
 
   return {
     voucher,
@@ -155,6 +151,17 @@ export const evaluateVoucher = async ({
     subtotal,
     totalAmount: Math.max(0, subtotal - discountAmount),
   };
+};
+
+// Tính số tiền giảm theo loại, giới hạn và giá trị đơn đủ điều kiện.
+export const calculateDiscountAmount = (voucher, eligibleSubtotal) => {
+  let discountAmount = voucher.discountType === "FIXED"
+    ? Number(voucher.discountValue)
+    : (eligibleSubtotal * Number(voucher.discountValue)) / 100;
+  if (voucher.discountType === "PERCENTAGE" && voucher.maxDiscountAmount !== null && voucher.maxDiscountAmount !== undefined) {
+    discountAmount = Math.min(discountAmount, Number(voucher.maxDiscountAmount));
+  }
+  return Math.min(eligibleSubtotal, Math.round(discountAmount));
 };
 
 const findVoucherByCode = async (code, { transaction, lock = false } = {}) => {
@@ -167,12 +174,14 @@ const findVoucherByCode = async (code, { transaction, lock = false } = {}) => {
   return voucher;
 };
 
+// Xác thực voucher theo giỏ hàng và trả về bản xem trước giá trị giảm.
 export const validateVoucherForCart = async (userId, code, options = {}) => {
   const pricing = options.pricing || await getCartPricing(userId, options);
   const voucher = await findVoucherByCode(code, options);
   return evaluateVoucher({ voucher, userId, ...pricing, transaction: options.transaction });
 };
 
+// Liệt kê voucher đang khả dụng và đánh giá khả năng áp dụng cho giỏ hàng.
 export const getAvailableVouchers = async (userId, options = {}) => {
   const { transaction } = options;
   const pricing = await getCartPricing(userId, options);
@@ -258,6 +267,7 @@ const toVoucherSummary = (voucher) => ({
   endAt: voucher.endAt,
 });
 
+// Chuyển kết quả đánh giá voucher thành dữ liệu xem trước cho client.
 export const toPreview = ({ voucher, categories, eligibleSubtotal, discountAmount, subtotal, totalAmount }) => ({
   ...toVoucherSummary(voucher),
   categories,
@@ -328,6 +338,7 @@ const persistVoucher = async (voucher, payload, transaction) => {
   return voucher.id;
 };
 
+// Tạo voucher và các quan hệ điều kiện trong cùng transaction.
 export const createVoucher = (payload) => sequelize.transaction(
   async (transaction) => getAdminVoucherById(
     await persistVoucher(null, payload, transaction),
@@ -335,6 +346,7 @@ export const createVoucher = (payload) => sequelize.transaction(
   ),
 );
 
+// Cập nhật voucher và đồng bộ lại các quan hệ điều kiện.
 export const updateVoucher = (id, payload) => sequelize.transaction(async (transaction) => {
   const voucher = await Voucher.findByPk(id, { transaction, lock: transaction.LOCK.UPDATE });
   if (!voucher) throw serviceError(404, "Không tìm thấy voucher");
@@ -344,6 +356,7 @@ export const updateVoucher = (id, payload) => sequelize.transaction(async (trans
   );
 });
 
+// Lấy chi tiết voucher dành cho thao tác quản trị.
 export const getAdminVoucherById = async (id, transaction) => {
   const voucher = await Voucher.findByPk(id, { include: includeRelations, transaction });
   if (!voucher) throw serviceError(404, "Không tìm thấy voucher");
@@ -354,6 +367,7 @@ export const getAdminVoucherById = async (id, transaction) => {
   return { ...voucher.toJSON(), usageCount };
 };
 
+// Tìm kiếm và phân trang voucher cho quản trị viên.
 export const listAdminVouchers = async ({
   search = "",
   status = "all",
@@ -396,6 +410,7 @@ export const listAdminVouchers = async ({
   };
 };
 
+// Bật hoặc tắt voucher theo yêu cầu quản trị.
 export const setVoucherStatus = async (id, isActive) => {
   const voucher = await Voucher.findByPk(id);
   if (!voucher) throw serviceError(404, "Không tìm thấy voucher");
@@ -403,6 +418,7 @@ export const setVoucherStatus = async (id, isActive) => {
   return getAdminVoucherById(id);
 };
 
+// Hoàn lại lượt sử dụng voucher khi đơn hàng bị hủy.
 export const releaseVoucherUsage = async (orderId, transaction) => {
   const usage = await VoucherUsage.findOne({
     where: { orderId, status: "APPLIED" },

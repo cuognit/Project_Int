@@ -16,6 +16,7 @@ const initialForm = (product) => product ? {
   isActive: product.isActive,
 } : EMPTY_FORM;
 
+// Quản lý biểu mẫu tạo mới hoặc chỉnh sửa sản phẩm.
 export default function ProductFormModal({ product, categories, open, onClose, onSubmit }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
@@ -44,6 +45,7 @@ export default function ProductFormModal({ product, categories, open, onClose, o
     setErrors((current) => ({ ...current, [name]: undefined }));
   };
 
+  // Xác thực dữ liệu sản phẩm trước khi chuyển cho trang quản lý lưu.
   const submit = async (event) => {
     event.preventDefault();
     setSubmitting(true);

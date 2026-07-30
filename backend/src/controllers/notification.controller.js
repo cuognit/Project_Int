@@ -21,6 +21,7 @@ const handleError = (error, res, next) => {
   return next(error);
 };
 
+// Trả về số thông báo chưa đọc của người dùng hiện tại.
 export const unreadCount = async (req, res, next) => {
   try {
     const count = await notificationService.getUnreadCount(req.user);
@@ -33,6 +34,7 @@ export const unreadCount = async (req, res, next) => {
   }
 };
 
+// Lấy danh sách thông báo thuộc phạm vi truy cập của người dùng.
 export const listNotifications = async (req, res, next) => {
   const validation = notificationListQuerySchema.safeParse(req.query);
   if (!validation.success) return validationError(res, validation.error.issues);
@@ -47,6 +49,7 @@ export const listNotifications = async (req, res, next) => {
   }
 };
 
+// Đánh dấu một thông báo của người dùng là đã đọc.
 export const markNotificationRead = async (req, res, next) => {
   const validation = notificationIdSchema.safeParse(req.params.notificationId);
   if (!validation.success) return validationError(res, validation.error.issues);

@@ -8,7 +8,7 @@ export default function AdminHeader() {
   return (
     <header className="border-b border-slate-200 bg-white px-8 py-4 flex items-center justify-between shadow-2xs select-none">
       <div>
-        <h1 className="text-xl font-extrabold text-slate-800">Quản trị Đơn hàng & Hệ thống</h1>
+        <h1 className="text-xl font-extrabold text-slate-800">Quản trị Hệ thống</h1>
         <p className="text-xs text-slate-400 mt-0.5">
           Bảng điều khiển quản lý đơn hàng, khách hàng và tồn kho sản phẩm
         </p>

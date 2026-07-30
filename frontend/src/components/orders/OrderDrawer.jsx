@@ -5,6 +5,7 @@ import { formatDate } from "../../utils/formatDate.js";
 import OrderStatusBadge from "./OrderStatusBadge.jsx";
 import PaymentStatusBadge from "./PaymentStatusBadge.jsx";
 
+// Hiển thị chi tiết đơn và hỗ trợ quản trị viên cập nhật trạng thái.
 export default function OrderDrawer({ orderId, onClose, onStatusUpdated }) {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,7 @@ export default function OrderDrawer({ orderId, onClose, onStatusUpdated }) {
     }, 300);
   };
 
+  // Cập nhật trạng thái đơn rồi thông báo cho danh sách bên ngoài.
   const handleStatusChange = async (newStatus) => {
     if (!order) return;
     setUpdating(true);

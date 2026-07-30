@@ -3,6 +3,7 @@ import sequelize from "../config/database.js";
 
 const TABLE_NAME = "refresh_sessions";
 
+// Tạo bảng lưu phiên refresh token nếu bảng chưa tồn tại.
 export const migrateRefreshSessions = async () => {
   const queryInterface = sequelize.getQueryInterface();
   const tables = await queryInterface.showAllTables();

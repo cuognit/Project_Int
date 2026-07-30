@@ -61,6 +61,17 @@ export const loginSchema = z
   })
   .strict("Dữ liệu đăng nhập chứa trường không được hỗ trợ");
 
+export const googleLoginSchema = z
+  .object({
+    credential: z
+      .string({ error: "Google credential không được để trống" })
+      .trim()
+      .min(1, "Google credential không được để trống")
+      .max(4096, "Google credential có độ dài không hợp lệ"),
+  })
+  .strict("Dữ liệu đăng nhập Google chứa trường không được hỗ trợ");
+
+
 export const formatValidationErrors = (issues) =>
   issues.reduce((errors, issue) => {
     const field = issue.path[0] || "body";

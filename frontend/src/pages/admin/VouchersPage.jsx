@@ -11,6 +11,7 @@ import VoucherFormModal from "../../components/vouchers/VoucherFormModal.jsx";
 import Pagination from "../../components/common/Pagination.jsx";
 import { formatCurrency } from "../../utils/formatCurrency.js";
 
+// Quản lý danh sách, biểu mẫu và trạng thái hoạt động của voucher.
 export default function VouchersPage() {
   const [vouchers, setVouchers] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -25,6 +26,7 @@ export default function VouchersPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [notice, setNotice] = useState("");
 
+  // Tải voucher theo bộ lọc và trang hiện tại.
   const load = async () => {
     setLoading(true);
     setError("");
@@ -49,6 +51,7 @@ export default function VouchersPage() {
       .catch(() => setError("Không thể tải dữ liệu danh mục hoặc người dùng."));
   }, []);
 
+  // Tạo mới hoặc cập nhật voucher đang chọn.
   const save = async (payload) => {
     if (editing) await updateVoucher(editing.id, payload);
     else await createVoucher(payload);
@@ -58,6 +61,7 @@ export default function VouchersPage() {
     await load();
   };
 
+  // Đảo trạng thái hoạt động của voucher và cập nhật danh sách.
   const toggleStatus = async (voucher) => {
     try {
       await updateVoucherStatus(voucher.id, !voucher.isActive);

@@ -108,7 +108,7 @@ export default function PoliciesPage() {
   };
 
   return (
-    <div className="space-y-8 select-none max-w-5xl mx-auto">
+    <div className="w-full space-y-8 select-none">
       
       {/* Page Header */}
       <div className="bg-gradient-to-r from-[#ee4d2d] to-[#ff7337] rounded-3xl p-8 text-white shadow-lg">

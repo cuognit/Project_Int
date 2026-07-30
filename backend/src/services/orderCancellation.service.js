@@ -3,6 +3,7 @@ import { OrderItem, Product } from "../models/index.js";
 import { createNotifications } from "./notification.service.js";
 import { releaseVoucherUsage } from "./voucher.service.js";
 
+// Hủy đơn đã khóa và đồng bộ tồn kho, voucher, thanh toán trong transaction.
 export const cancelLockedOrder = async (
   order,
   { transaction, paymentStatus = "CANCELLED", actor = "SYSTEM" },

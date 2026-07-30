@@ -21,6 +21,7 @@ function ProductImage({ product }) {
   );
 }
 
+// Quản lý tìm kiếm, lọc và các thao tác CRUD sản phẩm.
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,7 @@ export default function ProductsPage() {
   const [deleteError, setDeleteError] = useState("");
   const [notice, setNotice] = useState("");
 
+  // Tải danh sách sản phẩm theo các bộ lọc hiện tại.
   const loadProducts = async () => {
     setLoading(true);
     setLoadError("");
@@ -79,6 +81,7 @@ export default function ProductsPage() {
     loadProducts();
   }, [currentPage, query, statusFilter, stockFilter, categoryFilter]);
 
+  // Tải danh mục dùng cho bộ lọc và biểu mẫu sản phẩm.
   const loadCategories = async () => {
     const data = await getCategories();
     setCategories(data);
@@ -119,6 +122,7 @@ export default function ProductsPage() {
     await loadProducts();
   };
 
+  // Tạo mới hoặc cập nhật sản phẩm đang được chỉnh sửa.
   const saveProduct = async (payload) => {
     if (editingProduct) {
       await updateProduct(editingProduct.id, payload);
@@ -132,6 +136,7 @@ export default function ProductsPage() {
     loadProducts();
   };
 
+  // Xóa sản phẩm đã chọn và làm mới danh sách.
   const confirmDelete = async () => {
     setDeleteSubmitting(true);
     setDeleteError("");

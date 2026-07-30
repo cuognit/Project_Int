@@ -14,9 +14,11 @@ const getSecret = (name) => {
   return value;
 };
 
+// Băm refresh token trước khi lưu để tránh lưu token gốc.
 export const hashRefreshToken = (token) =>
   createHash("sha256").update(token).digest("hex");
 
+// Tạo access token ngắn hạn chứa thông tin định danh và phân quyền.
 export const createAccessToken = (user) =>
   jwt.sign(
     { role: user.role, type: "access" },
@@ -29,16 +31,19 @@ export const createAccessToken = (user) =>
     },
   );
 
+// Xác minh chữ ký và thời hạn của refresh token.
 export const verifyRefreshToken = (token) =>
   jwt.verify(token, getSecret("JWT_REFRESH_SECRET"), {
     algorithms: ["HS256"],
   });
 
+// Xác minh chữ ký và thời hạn của access token.
 export const verifyAccessToken = (token) =>
   jwt.verify(token, getSecret("JWT_ACCESS_SECRET"), {
     algorithms: ["HS256"],
   });
 
+// Phát hành đồng thời access token và refresh token cho người dùng.
 export const createAuthTokens = (user) => {
   const userId = String(user.id);
   const refreshId = randomUUID();

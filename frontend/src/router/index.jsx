@@ -24,6 +24,7 @@ import UsersPage from '../pages/admin/UsersPage.jsx';
 import ProductsPage from '../pages/admin/ProductsPage.jsx';
 import VouchersPage from '../pages/admin/VouchersPage.jsx';
 import PaymentsPage from '../pages/admin/PaymentsPage.jsx';
+import PendingOrdersPage from '../pages/admin/PendingOrdersPage.jsx';
 
 
 // Auth & Common Pages
@@ -79,6 +80,7 @@ const router = createBrowserRouter([
         element: <AdminLayout />,
         children: [
           { index: true, element: <DashboardPage /> },
+          { path: 'orders', element: <PendingOrdersPage /> },
           { path: 'users', element: <UsersPage /> },
           { path: 'users/:userId', element: <UsersPage /> },
           { path: 'products', element: <ProductsPage /> },

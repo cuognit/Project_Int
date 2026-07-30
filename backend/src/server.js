@@ -13,6 +13,7 @@ import { initializeNotificationGateway } from './socket/notification.gateway.js'
 import { expirePendingPayments } from './services/vnpay.service.js';
 const port = process.env.PORT || 3000;
 
+// Kết nối cơ sở dữ liệu, chạy migration và khởi động HTTP server.
 const startServer = async () => {
   await sequelize.authenticate();
   console.log('Kết nối cơ sở dữ liệu thành công');

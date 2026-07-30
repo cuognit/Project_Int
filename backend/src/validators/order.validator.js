@@ -38,3 +38,17 @@ export const myOrdersQuerySchema = z.object({
   ]).default("ALL"),
   search: z.string().trim().max(100).default(""),
 }).strict();
+
+export const adminOrdersQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  status: z.enum([
+    "ALL",
+    "PENDING",
+    "CONFIRMED",
+    "SHIPPING",
+    "COMPLETED",
+    "CANCELLED",
+  ]).default("PENDING"),
+  search: z.string().trim().max(100).default(""),
+}).strict();

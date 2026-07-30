@@ -8,6 +8,7 @@ import PaymentStatusBadge from "../../components/orders/PaymentStatusBadge.jsx";
 import { formatCurrency } from "../../utils/formatCurrency.js";
 import { formatDate } from "../../utils/formatDate.js";
 
+// Hiển thị chi tiết và cho phép hủy đơn thuộc người dùng hiện tại.
 export default function CustomerOrderDetailPage() {
   const { orderId } = useParams();
   const location = useLocation();
@@ -23,6 +24,7 @@ export default function CustomerOrderDetailPage() {
     });
   }, [orderId]);
 
+  // Gửi yêu cầu hủy đơn rồi cập nhật dữ liệu chi tiết.
   const handleCancelOrder = async () => {
     setCancelLoading(true);
     setCancelError("");
@@ -50,7 +52,7 @@ export default function CustomerOrderDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="w-full space-y-6">
       {location.state?.orderSuccess && (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
           ✓ Đặt hàng thành công. Đơn hàng đang chờ cửa hàng xác nhận.

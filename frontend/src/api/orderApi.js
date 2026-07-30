@@ -6,3 +6,7 @@ export const getOrder = (id) => axiosClient.get(`/orders/${id}`).then((response)
 export const createOrder = (payload) => axiosClient.post('/orders', payload).then((response) => response.data.data);
 export const cancelOrder = (id) => axiosClient.patch(`/orders/${id}/cancel`).then((response) => response.data.data);
 export const updateOrderStatus = (id, status) => axiosClient.patch(`/orders/${id}/status`, { status }).then((response) => response.data.data);
+export const getAdminOrders = (params) =>
+  axiosClient.get('/orders/admin', { params }).then((response) => response.data.data);
+export const getAdminOrderCounts = () =>
+  axiosClient.get('/orders/admin/counts').then((response) => response.data.data);

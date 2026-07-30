@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { getProfile, updateProfile, changePassword } from "../../api/userApi.js";
 
+// Quản lý cập nhật hồ sơ và đổi mật khẩu của người dùng.
 export default function ProfilePage() {
   const { user, updateUserProfile } = useAuth();
 
@@ -44,6 +45,7 @@ export default function ProfilePage() {
       .catch((err) => console.error("Error fetching profile:", err));
   }, []);
 
+  // Lưu hồ sơ mới và đồng bộ lại AuthContext.
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     setProfileMessage({ type: "", text: "" });
@@ -72,6 +74,7 @@ export default function ProfilePage() {
     }
   };
 
+  // Xác thực biểu mẫu rồi gửi yêu cầu đổi mật khẩu.
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setPasswordMessage({ type: "", text: "" });

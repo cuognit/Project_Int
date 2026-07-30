@@ -8,6 +8,7 @@ import OrderStatusBadge from "../../components/orders/OrderStatusBadge.jsx";
 import OrderDrawer from "../../components/orders/OrderDrawer.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 
+// Quản lý hồ sơ, quyền truy cập và lịch sử đơn của người dùng.
 export default function UsersPage() {
   const { userId } = useParams();
   const navigate = useNavigate();
@@ -81,6 +82,7 @@ export default function UsersPage() {
     setIsAccessModalOpen(true);
   };
 
+  // Lưu thay đổi vai trò hoặc trạng thái khóa tài khoản.
   const handleSaveAccess = async (event) => {
     event.preventDefault();
     if (!selectedUser) return;
@@ -117,6 +119,7 @@ export default function UsersPage() {
     }
   };
 
+  // Lưu thông tin hồ sơ do quản trị viên chỉnh sửa.
   const handleSaveUser = async (e) => {
     e.preventDefault();
     if (!selectedUser) return;
@@ -135,6 +138,7 @@ export default function UsersPage() {
   };
 
   // Fetch all users on mount
+  // Tải lại danh sách người dùng và giữ trạng thái chọn phù hợp.
   const fetchUsersList = () => {
     setUsersLoading(true);
     getUsers()
@@ -183,6 +187,7 @@ export default function UsersPage() {
   }, [userId, users]);
 
   // Handler for updating status in Drawer
+  // Đồng bộ lịch sử đơn khi trạng thái đơn được cập nhật.
   const handleOrderStatusUpdated = (orderId, newStatus) => {
     setOrders((prevOrders) =>
       prevOrders.map((ord) =>

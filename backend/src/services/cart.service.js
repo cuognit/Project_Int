@@ -51,6 +51,7 @@ const serializeCart = (cart) => {
   };
 };
 
+// Lấy hoặc khởi tạo giỏ hàng và chuẩn hóa dữ liệu trả về.
 export const getCart = async (userId) => {
   const cart = await Cart.findOne({
     where: { userId, status: "ACTIVE" },
@@ -82,6 +83,7 @@ const getOrCreateLockedCart = async (userId, transaction) => {
   });
 };
 
+// Thêm sản phẩm vào giỏ trong transaction và kiểm tra tồn kho.
 export const addItem = async (userId, { productId, quantity }) => {
   await sequelize.transaction(async (transaction) => {
     const product = await getAvailableProduct(productId, transaction);
@@ -106,6 +108,7 @@ export const addItem = async (userId, { productId, quantity }) => {
   return getCart(userId);
 };
 
+// Cập nhật số lượng sản phẩm trong giỏ với khóa dữ liệu phù hợp.
 export const updateItem = async (userId, productId, quantity) => {
   await sequelize.transaction(async (transaction) => {
     const product = await getAvailableProduct(productId, transaction);
@@ -129,6 +132,7 @@ export const updateItem = async (userId, productId, quantity) => {
   return getCart(userId);
 };
 
+// Xóa sản phẩm khỏi giỏ hàng của người dùng.
 export const removeItem = async (userId, productId) => {
   await sequelize.transaction(async (transaction) => {
     const cart = await Cart.findOne({

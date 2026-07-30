@@ -8,6 +8,7 @@ import {
 const errorMessage = (error) =>
   error?.message || error?.response?.data?.message || "Không thể cập nhật danh mục.";
 
+// Quản lý thao tác thêm, sửa và xóa danh mục ngay trong modal.
 export default function CategoryManagerModal({
   open,
   categories,
@@ -22,6 +23,7 @@ export default function CategoryManagerModal({
 
   if (!open) return null;
 
+  // Tạo danh mục mới và đồng bộ danh sách hiển thị.
   const addCategory = async (event) => {
     event.preventDefault();
     setSubmitting(true);
@@ -37,6 +39,7 @@ export default function CategoryManagerModal({
     }
   };
 
+  // Lưu tên mới cho danh mục đang chỉnh sửa.
   const saveCategory = async (categoryId) => {
     setSubmitting(true);
     setError("");
@@ -51,6 +54,7 @@ export default function CategoryManagerModal({
     }
   };
 
+  // Xóa danh mục sau khi người dùng xác nhận.
   const removeCategory = async (category) => {
     if (!window.confirm(
       `Xóa danh mục "${category.name}"? Sản phẩm sẽ được chuyển sang “Chưa phân loại”.`,

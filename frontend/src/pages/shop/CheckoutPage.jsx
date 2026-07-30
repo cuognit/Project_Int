@@ -10,6 +10,7 @@ const fieldClass = (hasError) =>
     hasError ? "border-rose-400" : "border-slate-200"
   }`;
 
+// Điều phối nhập thông tin giao hàng, áp dụng voucher và tạo đơn.
 export default function CheckoutPage() {
   const {
     user,
@@ -74,6 +75,7 @@ export default function CheckoutPage() {
     );
   }, [availableVouchers, voucherLoading]);
 
+  // Chọn voucher có sẵn hoặc bỏ chọn voucher hiện tại.
   const selectVoucher = (voucher) => {
     if (!voucher.isApplicable) return;
     setAppliedVoucher(voucher);
@@ -81,6 +83,7 @@ export default function CheckoutPage() {
     setVoucherError("");
   };
 
+  // Xác thực mã voucher nhập tay và cập nhật bản xem trước đơn hàng.
   const applyVoucherCode = async () => {
     const code = voucherCode.trim().toUpperCase();
     if (!code.trim()) return;
@@ -117,6 +120,7 @@ export default function CheckoutPage() {
     setSubmitError("");
   };
 
+  // Kiểm tra thông tin giao nhận trước khi gửi yêu cầu tạo đơn.
   const validate = () => {
     const next = {};
     if (form.shippingName.trim().length < 2) next.shippingName = "Vui lòng nhập họ tên người nhận.";
@@ -131,6 +135,7 @@ export default function CheckoutPage() {
     return Object.keys(next).length === 0;
   };
 
+  // Đồng bộ giỏ hàng, tạo đơn và chuyển đến VNPay khi cần.
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!validate() || submitting) return;

@@ -9,9 +9,10 @@ const axiosClient = axios.create({
 });
 
 const isAuthEndpoint = (url = "") =>
-  ["/auth/login", "/auth/register", "/auth/refresh", "/auth/logout"].some(
+  ["/auth/login", "/auth/google", "/auth/register", "/auth/refresh", "/auth/logout"].some(
     (path) => url.includes(path),
   );
+
 
 axiosClient.interceptors.request.use((config) => {
   const accessToken = getAccessToken();

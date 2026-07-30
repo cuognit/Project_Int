@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useNotifications from "../../hooks/useNotifications.js";
-import { getOrder } from "../../api/orderApi.js";
 
 const iconForType = (type) => {
   if (type === "ORDER_CREATED" || type === "NEW_ORDER") return "📦";
@@ -20,6 +19,7 @@ const relativeTime = (value) => {
   return formatter.format(Math.round(hours / 24), "day");
 };
 
+// Hiển thị số chưa đọc và danh sách thông báo realtime của người dùng.
 export default function NotificationBell({ variant = "shop" }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -43,22 +43,14 @@ export default function NotificationBell({ variant = "shop" }) {
     if (nextOpen) loadNotifications();
   };
 
+  // Đánh dấu thông báo đã đọc và điều hướng tới tài nguyên liên quan.
   const handleItemClick = async (item) => {
     try {
       await markAsRead(item);
       setOpen(false);
       if (item.orderId) {
         if (admin) {
-          let userId = item.metadata?.userId;
-          if (!userId) {
-            const order = await getOrder(item.orderId);
-            userId = order.userId || order.user?.id;
-          }
-          navigate(
-            userId
-              ? `/admin/users/${userId}?orderId=${item.orderId}`
-              : "/admin/users",
-          );
+          navigate(`/admin/orders?orderId=${item.orderId}`);
         } else {
           navigate(`/my-orders/${item.orderId}`);
         }

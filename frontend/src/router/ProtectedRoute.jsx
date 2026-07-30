@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
+// Chặn route chưa đăng nhập hoặc không có vai trò được phép.
 export default function ProtectedRoute({ allowedRoles }) {
   const { user, isAuthenticated, isAuthInitializing } = useAuth();
   const location = useLocation();

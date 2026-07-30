@@ -5,7 +5,10 @@ import { getCategories } from "../../api/categoryApi.js";
 import { formatCurrency } from "../../utils/formatCurrency.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import ScrollReveal from "../../components/common/ScrollReveal.jsx";
+import HeroBannerCarousel from "../../components/shop/HeroBannerCarousel.jsx";
+import CategoryIcon from "../../components/categories/CategoryIcon.jsx";
 
+// Hiển thị trang chủ cửa hàng và các sản phẩm nổi bật.
 export default function ShopHomePage() {
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
@@ -17,13 +20,6 @@ export default function ShopHomePage() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Live Flash Sale Countdown Timer
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 5,
-    minutes: 42,
-    seconds: 18,
-  });
 
   const { addToCart, isAuthenticated, cartError, cartLoading } = useAuth();
 
@@ -56,20 +52,6 @@ export default function ShopHomePage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Flash Sale Timer Effect
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
-        if (prev.hours > 0)
-          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return { hours: 12, minutes: 0, seconds: 0 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   useEffect(() => {
     setLoading(true);
     getProducts({ page: 1, limit: 8 })
@@ -89,6 +71,7 @@ export default function ShopHomePage() {
       });
   }, []);
 
+  // Thêm nhanh sản phẩm nổi bật vào giỏ hàng.
   const handleAddToCart = async (product, e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -177,110 +160,8 @@ export default function ShopHomePage() {
         </div>
       </div>
 
-      {/* BLOCK 1: Dynamic Outstanding Shopee Hero Banner */}
-      <div className="relative bg-gradient-to-br from-[#ee4d2d] via-[#f53d2d] to-[#ff6026] rounded-3xl p-8 sm:p-12 text-white overflow-hidden shadow-2xl border border-orange-400/30">
-        {/* Animated Light Glare Sweep */}
-        <div className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine pointer-events-none z-1"></div>
-
-        {/* Orbiting Ambient Background Orbs */}
-        <div className="absolute -bottom-24 -right-24 w-[420px] h-[420px] bg-yellow-400/20 rounded-full blur-3xl animate-spin-slow pointer-events-none"></div>
-        <div className="absolute -top-24 -left-24 w-80 h-80 bg-white/15 rounded-full blur-2xl pointer-events-none"></div>
-
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left Hero Column */}
-          <div className="lg:col-span-7 space-y-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-yellow-400 text-orange-950 rounded-full text-xs font-black uppercase tracking-wider shadow-md animate-pulse">
-                <span>🔥 FLASH SALE GIỜ VÀNG</span>
-              </div>
-
-              {/* Live Countdown Timer */}
-              <div className="flex items-center gap-1.5 text-xs font-extrabold bg-black/30 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 shadow-inner">
-                <span className="text-yellow-300">Kết thúc sau:</span>
-                <span className="bg-white text-orange-950 px-2 py-0.5 rounded-md font-black text-xs shadow-xs">
-                  {String(timeLeft.hours).padStart(2, "0")}
-                </span>
-                <span>:</span>
-                <span className="bg-white text-orange-950 px-2 py-0.5 rounded-md font-black text-xs shadow-xs">
-                  {String(timeLeft.minutes).padStart(2, "0")}
-                </span>
-                <span>:</span>
-                <span className="bg-[#ee4d2d] text-white px-2 py-0.5 rounded-md font-black text-xs animate-pulse shadow-xs">
-                  {String(timeLeft.seconds).padStart(2, "0")}
-                </span>
-              </div>
-            </div>
-
-            <h1 className="text-3xl sm:text-5xl font-black leading-tight tracking-tight drop-shadow-md">
-              ShopeeMart <br className="hidden sm:inline" />
-              <span className="text-yellow-300 drop-shadow-sm">
-                Siêu Siêu Rẻ
-              </span>{" "}
-              Mới Mỗi Ngày
-            </h1>
-
-            <p className="text-xs sm:text-sm text-orange-100 leading-relaxed font-medium max-w-lg">
-              Hàng triệu sản phẩm chính hãng 100%, voucher Freeship 0Đ toàn
-              quốc, bảo hành 1 đổi 1 & hoàn tiền 111% nếu phát hiện hàng giả.
-            </p>
-
-            <div className="pt-2 flex flex-wrap items-center gap-3 text-xs font-bold">
-              <Link
-                to="/products"
-                className="px-6 py-3.5 bg-white text-[#ee4d2d] hover:bg-orange-50 font-black rounded-2xl shadow-xl hover:scale-105 transition-all duration-200 flex items-center gap-2 group"
-              >
-                <span>⚡ KHÁM PHÁ SẢN PHẨM</span>
-                <span className="text-sm group-hover:translate-x-1 transition-transform">
-                  →
-                </span>
-              </Link>
-
-              <span className="px-4 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 text-yellow-200">
-                🚚 Vận chuyển 0Đ Xtra
-              </span>
-            </div>
-          </div>
-
-          {/* Right Floating 3D Graphic Cards Column */}
-          <div className="lg:col-span-5 relative min-h-[220px] hidden sm:flex items-center justify-center">
-            {/* Card 1: Floating Discount Badge */}
-            <div className="animate-float absolute -top-10 right-4 bg-white/20 backdrop-blur-xl border border-white/30 p-4 rounded-3xl shadow-2xl space-y-1 text-white max-w-[200px] hover:scale-105 transition-all cursor-pointer">
-              <span className="block text-[10px] font-black text-yellow-300 uppercase tracking-widest">
-                ƯU ĐÃI KHỦNG
-              </span>
-              <span className="block text-2xl font-black text-white">
-                GIẢM 50%
-              </span>
-              <span className="block text-[10px] text-orange-100">
-                Áp dụng cho mọi sản phẩm hôm nay
-              </span>
-            </div>
-
-            {/* Card 2: Floating Cashback Badge */}
-            <div className="animate-float-delayed absolute bottom-2 left-6 bg-slate-900/80 backdrop-blur-xl border border-slate-700/80 p-4 rounded-3xl shadow-2xl space-y-1 text-white max-w-[220px] hover:scale-105 transition-all cursor-pointer">
-              <div className="flex items-center gap-2">
-                <span className="h-6 w-6 bg-emerald-500 rounded-lg flex items-center justify-center text-xs font-black">
-                  ✓
-                </span>
-                <span className="text-xs font-black text-emerald-400">
-                  SHOPEE MALL
-                </span>
-              </div>
-              <span className="block text-xs font-bold text-slate-200 mt-1">
-                Hoàn Tiền 111% Xu
-              </span>
-              <span className="block text-[9px] text-slate-400">
-                Cam kết chính hãng 100%
-              </span>
-            </div>
-
-            {/* Center Big Floating Shopping Graphic */}
-            <div className="h-44 w-44 bg-gradient-to-tr from-yellow-400 to-orange-400 rounded-full flex items-center justify-center shadow-2xl text-6xl shadow-orange-600/50 animate-bounce">
-              🛍️
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* BLOCK 1: Auto-sliding promotional hero banners */}
+      <HeroBannerCarousel />
 
       {/* ANIMATION 2: Interactive Category Quick Pills */}
       <section className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
@@ -312,8 +193,8 @@ export default function ShopHomePage() {
                 to={`/products?category=${cat.id}`}
                 className={`p-3.5 rounded-2xl border ${colors[idx % colors.length]} flex flex-col items-center justify-center gap-1.5 hover:scale-105 hover:shadow-md transition-all duration-200 cursor-pointer text-center group`}
               >
-                <span className="text-2xl group-hover:scale-110 transition-transform">
-                  ▦
+                <span className="grid h-12 w-12 place-items-center rounded-2xl border border-current/10 bg-white/70 shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:scale-110 group-hover:shadow-md">
+                  <CategoryIcon name={cat.name} />
                 </span>
                 <span className="text-xs font-bold leading-tight">
                   {cat.name}

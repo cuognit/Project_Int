@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { loginApi } from "../../api/authApi.js";
+import { googleLoginApi, loginApi } from "../../api/authApi.js";
+import GoogleLoginButton from "../../components/auth/GoogleLoginButton.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 
+// Xử lý đăng nhập bằng mật khẩu hoặc tài khoản Google.
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Xác thực biểu mẫu và khởi tạo phiên đăng nhập bằng email.
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitting(true);
@@ -30,6 +33,27 @@ export default function LoginPage() {
       setError(apiError?.message || "Không thể đăng nhập. Vui lòng thử lại.");
       setSubmitting(false);
     }
+  };
+
+  // Đổi Google credential lấy phiên đăng nhập của ứng dụng.
+  const handleGoogleSuccess = async (credential) => {
+    setSubmitting(true);
+    setError("");
+    setErrors({});
+
+    try {
+      const data = await googleLoginApi(credential);
+      login(data.user, data.accessToken);
+      navigate(data.user.role === "admin" ? "/admin" : from, { replace: true });
+    } catch (apiError) {
+      setErrors(apiError?.errors || {});
+      setError(apiError?.message || "Đăng nhập bằng Google thất bại. Vui lòng thử lại.");
+      setSubmitting(false);
+    }
+  };
+
+  const handleGoogleError = (errMsg) => {
+    setError(errMsg || "Lỗi kết nối với dịch vụ đăng nhập Google.");
   };
 
   return (
@@ -109,6 +133,19 @@ export default function LoginPage() {
             {submitting ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP SHOPEE"}
           </button>
         </form>
+
+        <div className="relative flex items-center justify-center my-4">
+          <div className="w-full border-t border-slate-200" />
+          <span className="absolute bg-white px-3 text-xs font-semibold text-slate-400 uppercase">
+            Hoặc
+          </span>
+        </div>
+
+        <GoogleLoginButton
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleError}
+          disabled={submitting}
+        />
 
         <div className="border-t border-slate-100 pt-2 text-center text-xs text-slate-500">
           Chưa có tài khoản?{" "}

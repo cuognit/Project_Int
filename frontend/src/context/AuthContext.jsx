@@ -22,6 +22,7 @@ const getTokenExpiry = (token) => {
   }
 };
 
+// Quản lý phiên đăng nhập, tự làm mới token và cung cấp trạng thái xác thực.
 export function AuthProvider({ children }) {
   const initialSession = getSession();
   const [user, setUser] = useState(initialSession.user);
@@ -66,11 +67,13 @@ export function AuthProvider({ children }) {
     return () => window.clearTimeout(timerId);
   }, [accessToken, isAuthInitializing]);
 
+  // Lưu thông tin phiên sau khi đăng nhập thành công.
   const login = (userData, token) => {
     invalidatePendingRefresh();
     setSession({ user: userData, accessToken: token });
   };
 
+  // Kết thúc phiên và đưa người dùng về trạng thái chưa đăng nhập.
   const logout = async () => {
     await cartState.flushCartChanges();
     clearSession();
@@ -92,6 +95,7 @@ export function AuthProvider({ children }) {
     0,
   );
 
+  // Đồng bộ hồ sơ mới vào context và kho phiên dùng chung.
   const updateUserProfile = (updatedUser) => {
     updateUser(updatedUser);
   };
@@ -142,6 +146,7 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// Truy cập AuthContext và phát hiện trường hợp dùng ngoài provider.
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

@@ -3,6 +3,7 @@ import sequelize from "../config/database.js";
 import { Category, Product, VoucherCategory } from "../models/index.js";
 import { DEFAULT_CATEGORY_NAME } from "../database/productCategory.migration.js";
 
+// Lấy danh mục kèm số lượng sản phẩm liên quan.
 export const getCategories = async () => {
   const categories = await Category.findAll({
     attributes: [
@@ -38,6 +39,7 @@ const findDuplicate = (name, excludeId) => Category.findOne({
   },
 });
 
+// Tạo danh mục sau khi kiểm tra tên trùng lặp.
 export const createCategory = async (name) => {
   if (await findDuplicate(name)) {
     const error = new Error("Tên danh mục đã tồn tại");
@@ -47,6 +49,7 @@ export const createCategory = async (name) => {
   return Category.create({ name });
 };
 
+// Đổi tên danh mục và ngăn trùng tên với danh mục khác.
 export const updateCategory = async (id, name) => {
   const category = await Category.findByPk(id);
   if (!category) {
@@ -69,6 +72,7 @@ export const updateCategory = async (id, name) => {
   return category;
 };
 
+// Xóa danh mục và xử lý các liên kết sản phẩm trong cùng transaction.
 export const deleteCategory = async (id) => sequelize.transaction(async (transaction) => {
   const category = await Category.findByPk(id, {
     transaction,

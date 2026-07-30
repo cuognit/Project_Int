@@ -44,6 +44,7 @@ const initialForm = (voucher) => voucher ? {
   perUserLimit: voucher.perUserLimit ?? "",
 } : emptyForm();
 
+// Quản lý biểu mẫu tạo hoặc chỉnh sửa voucher và điều kiện áp dụng.
 export default function VoucherFormModal({
   open,
   voucher,
@@ -83,6 +84,7 @@ export default function VoucherFormModal({
     }));
   };
 
+  // Chuẩn hóa dữ liệu biểu mẫu và gửi cho trang quản lý voucher.
   const submit = async (event) => {
     event.preventDefault();
     setSubmitting(true);

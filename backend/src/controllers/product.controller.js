@@ -57,12 +57,14 @@ const invalidId = (res) =>
 const notFound = (res) =>
   res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm" });
 
+// Lấy danh sách sản phẩm đang hiển thị cho khách hàng.
 export const listProducts = async (req, res, next) => {
   try {
     return res.status(200).json({ success: true, data: await productService.getProducts(req.query) });
   } catch (error) { return next(error); }
 };
 
+// Lấy danh sách sản phẩm đầy đủ cho quản trị viên.
 export const listAdminProducts = async (req, res, next) => {
   try {
     return res.status(200).json({
@@ -74,6 +76,7 @@ export const listAdminProducts = async (req, res, next) => {
   }
 };
 
+// Lấy chi tiết một sản phẩm theo mã định danh.
 export const getProduct = async (req, res, next) => {
   try {
     const id = parseId(req.params.productId);
@@ -111,8 +114,10 @@ const saveProduct = async (req, res, next, product) => {
   } catch (error) { return next(error); }
 };
 
+// Tạo sản phẩm mới từ dữ liệu đã gửi lên.
 export const createProduct = (req, res, next) => saveProduct(req, res, next);
 
+// Cập nhật sản phẩm hiện có sau khi kiểm tra mã định danh.
 export const updateProduct = async (req, res, next) => {
   try {
     const id = parseId(req.params.productId);
@@ -123,6 +128,7 @@ export const updateProduct = async (req, res, next) => {
   } catch (error) { return next(error); }
 };
 
+// Xóa sản phẩm khi không bị ràng buộc bởi dữ liệu liên quan.
 export const deleteProduct = async (req, res, next) => {
   try {
     const id = parseId(req.params.productId);

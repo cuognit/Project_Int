@@ -4,6 +4,7 @@ import { User } from "../models/index.js";
 
 let io = null;
 
+// Khởi tạo Socket.IO, xác thực kết nối và quản lý phòng người dùng.
 export const initializeNotificationGateway = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
@@ -57,6 +58,7 @@ export const initializeNotificationGateway = (httpServer) => {
   return io;
 };
 
+// Phát thông báo realtime tới đúng người dùng hoặc nhóm quản trị.
 export const publishNotification = (notification) => {
   if (!io) return;
   const room = notification.audience === "ADMIN"
@@ -65,6 +67,13 @@ export const publishNotification = (notification) => {
   io.to(room).emit("notification:new", notification);
 };
 
+// Báo cho quản trị viên khi hàng đợi đơn chờ xử lý thay đổi.
+export const publishAdminOrderQueueChanged = (payload) => {
+  if (!io) return;
+  io.to("admins").emit("admin:order-queue-changed", payload);
+};
+
+// Ngắt toàn bộ kết nối realtime của người dùng bị thu hồi quyền.
 export const disconnectUserSessions = (userId) => {
   if (!io) return;
   const room = `account:${userId}`;

@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getDashboardStats, getLeaderboard } from '../../api/dashboardApi.js';
+import {
+  getDashboardAnalytics,
+  getDashboardCustomers,
+  getDashboardOrders,
+  getDashboardOverview,
+  getDashboardProducts,
+  getLeaderboard,
+} from '../../api/dashboardApi.js';
 import { formatCurrency } from '../../utils/formatCurrency.js';
 import { formatDate } from '../../utils/formatDate.js';
 import OrderStatusBadge from '../../components/orders/OrderStatusBadge.jsx';
@@ -16,6 +23,81 @@ import {
   Cell,
 } from 'recharts';
 
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-8 select-none pb-16">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="h-5 w-72 max-w-full animate-pulse rounded-lg bg-slate-200" />
+          <div className="h-3 w-80 max-w-full animate-pulse rounded bg-slate-100" />
+        </div>
+        <div className="h-9 w-36 animate-pulse rounded-xl bg-slate-200" />
+      </div>
+
+      <div>
+        <div className="mb-4 h-3 w-36 animate-pulse rounded bg-slate-200" />
+        <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-5">
+          {Array.from({ length: 5 }, (_, index) => (
+            <div key={index} className="h-28 animate-pulse rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="h-3 w-24 rounded bg-slate-200" />
+              <div className="mt-5 h-6 w-28 rounded bg-slate-200" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-4">
+          {Array.from({ length: 4 }, (_, index) => (
+            <div key={index} className="flex h-20 animate-pulse items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5">
+              <div className="h-10 w-10 rounded-xl bg-slate-200" />
+              <div className="flex-1 space-y-2">
+                <div className="h-2.5 w-24 rounded bg-slate-200" />
+                <div className="h-5 w-20 rounded bg-slate-200" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="h-[390px] animate-pulse rounded-3xl border border-slate-200 bg-white p-6 lg:col-span-2">
+          <div className="h-4 w-48 rounded bg-slate-200" />
+          <div className="mt-8 h-72 rounded-2xl bg-slate-100" />
+        </div>
+        <div className="h-[390px] animate-pulse rounded-3xl border border-slate-200 bg-white p-6">
+          <div className="h-4 w-40 rounded bg-slate-200" />
+          <div className="mx-auto mt-10 h-48 w-48 rounded-full bg-slate-100" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="h-80 animate-pulse rounded-3xl border border-slate-200 bg-white p-6 lg:col-span-2">
+          <div className="h-4 w-48 rounded bg-slate-200" />
+          <div className="mt-6 space-y-3">
+            {Array.from({ length: 5 }, (_, index) => <div key={index} className="h-9 rounded-xl bg-slate-100" />)}
+          </div>
+        </div>
+        <div className="h-80 animate-pulse rounded-3xl border border-slate-200 bg-white p-6">
+          <div className="h-4 w-40 rounded bg-slate-200" />
+          <div className="mt-6 space-y-4">
+            {Array.from({ length: 3 }, (_, index) => <div key={index} className="h-16 rounded-2xl bg-slate-100" />)}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {Array.from({ length: 3 }, (_, column) => (
+          <div key={column} className="h-80 animate-pulse rounded-2xl border border-slate-200 bg-white p-5">
+            <div className="h-4 w-40 rounded bg-slate-200" />
+            <div className="mt-5 space-y-3">
+              {Array.from({ length: 5 }, (_, index) => <div key={index} className="h-10 rounded-xl bg-slate-100" />)}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Tổng hợp và hiển thị các chỉ số điều hành của cửa hàng.
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -33,12 +115,27 @@ export default function DashboardPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // Tải đồng thời các nhóm dữ liệu chính của dashboard.
   const fetchData = () => {
     setLoading(true);
     setError(false);
-    getDashboardStats('all') // Fetch default dashboard stats
-      .then((data) => {
-        setStats(data);
+    Promise.all([
+      getDashboardOverview(),
+      getDashboardAnalytics(),
+      getDashboardCustomers({ period: 'all' }),
+      getDashboardOrders(),
+      getDashboardProducts(),
+    ])
+      .then(([overview, analytics, customerStats, orderLists, productLists]) => {
+        setStats({
+          overview,
+          ...analytics,
+          customerStats,
+          operationalLists: {
+            ...orderLists,
+            ...productLists,
+          },
+        });
         setLoading(false);
       })
       .catch((err) => {
@@ -48,6 +145,7 @@ export default function DashboardPage() {
       });
   };
 
+  // Tải lại riêng bảng xếp hạng khi bộ lọc thời gian thay đổi.
   const fetchLeaderboardOnly = (period, start = startDate, end = endDate) => {
     setLeaderboardLoading(true);
     getLeaderboard({
@@ -102,12 +200,7 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[500px] space-y-3 select-none">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
-        <span className="text-sm text-slate-500 font-semibold">Đang tải báo cáo tổng hợp hệ thống...</span>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error || !stats) {
@@ -354,6 +447,12 @@ export default function DashboardPage() {
                   tickFormatter={(v) => trendMetric === 'count' ? v : `${v / 1000000}M`}
                 />
                 <Tooltip
+                  isAnimationActive={false}
+                  cursor={{
+                    stroke: trendMetric === 'count' ? '#a5b4fc' : '#6ee7b7',
+                    strokeWidth: 1.5,
+                    strokeDasharray: '4 4',
+                  }}
                   contentStyle={{
                     backgroundColor: '#fff',
                     borderRadius: '12px',
@@ -361,6 +460,7 @@ export default function DashboardPage() {
                     fontSize: '11px',
                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)',
                   }}
+                  wrapperStyle={{ pointerEvents: 'none', outline: 'none' }}
                   formatter={(value) => trendMetric === 'count' ? [`${value} đơn`, 'Số lượng'] : [formatCurrency(value), 'Doanh thu']}
                 />
                 <Area
@@ -370,6 +470,13 @@ export default function DashboardPage() {
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#colorCount)"
+                  dot={false}
+                  activeDot={{
+                    r: 5,
+                    strokeWidth: 3,
+                    stroke: '#fff',
+                    fill: trendMetric === 'count' ? '#4f46e5' : '#10b981',
+                  }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -554,11 +661,19 @@ export default function DashboardPage() {
           <div className="relative overflow-hidden rounded-xl border border-slate-100 bg-white min-h-[220px]">
             {/* Leaderboard Loader overlay */}
             {leaderboardLoading && (
-              <div className="absolute inset-0 bg-white/70 backdrop-blur-xs flex items-center justify-center z-10 select-none">
-                <div className="flex items-center gap-2 bg-white px-4 py-2 border border-slate-150 rounded-xl shadow-xs">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600"></div>
-                  <span className="text-[10px] font-bold text-slate-600">Đang cập nhật...</span>
+              <div className="absolute inset-0 z-10 space-y-3 bg-white p-4 select-none">
+                <div className="grid grid-cols-4 gap-4 border-b border-slate-100 pb-3">
+                  {Array.from({ length: 4 }, (_, index) => (
+                    <div key={index} className="h-3 animate-pulse rounded bg-slate-200" />
+                  ))}
                 </div>
+                {Array.from({ length: 5 }, (_, row) => (
+                  <div key={row} className="grid grid-cols-4 gap-4 py-1">
+                    {Array.from({ length: 4 }, (_, column) => (
+                      <div key={column} className="h-3 animate-pulse rounded bg-slate-100" />
+                    ))}
+                  </div>
+                ))}
               </div>
             )}
             <table className="w-full text-left text-xs">

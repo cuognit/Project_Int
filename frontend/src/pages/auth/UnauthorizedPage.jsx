@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function UnauthorizedPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 text-center select-none">
+    <div className="app-soft-background min-h-screen flex items-center justify-center p-4 text-center select-none">
       <div className="max-w-md bg-white border border-slate-200 p-8 rounded-3xl shadow-xl space-y-4">
         <div className="h-16 w-16 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center mx-auto">
           <svg className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

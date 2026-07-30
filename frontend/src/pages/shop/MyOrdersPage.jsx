@@ -57,6 +57,7 @@ function OrderSkeleton() {
   );
 }
 
+// Hiển thị, lọc, phân trang và hỗ trợ hủy đơn của khách hàng.
 export default function MyOrdersPage() {
   const location = useLocation();
   const [orders, setOrders] = useState([]);
@@ -82,6 +83,7 @@ export default function MyOrdersPage() {
     return () => window.clearTimeout(timer);
   }, [search]);
 
+  // Tải trang đơn hàng mới hoặc nối thêm vào danh sách hiện tại.
   const loadOrders = useCallback(async (page, append = false) => {
     const requestId = ++requestIdRef.current;
     append ? setLoadingMore(true) : setLoading(true);
@@ -121,6 +123,7 @@ export default function MyOrdersPage() {
     setDebouncedSearch("");
   };
 
+  // Hủy đơn được chọn và đồng bộ lại danh sách cùng giỏ hàng.
   const handleCancelOrder = async () => {
     if (!orderToCancel) return;
     setCancelLoading(true);
@@ -137,7 +140,7 @@ export default function MyOrdersPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="w-full space-y-6">
       {showSuccessAlert && (
         <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
           <div className="flex items-center gap-3">

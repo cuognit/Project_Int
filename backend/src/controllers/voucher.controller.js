@@ -17,6 +17,7 @@ const parseId = (value) => {
   return Number.isInteger(id) && id > 0 ? id : null;
 };
 
+// Lấy các voucher mà giỏ hàng hiện tại có thể sử dụng.
 export const availableVouchers = async (req, res, next) => {
   try {
     return res.json({
@@ -28,6 +29,7 @@ export const availableVouchers = async (req, res, next) => {
   }
 };
 
+// Kiểm tra và xem trước mức giảm của voucher cho giỏ hàng.
 export const validateVoucher = async (req, res, next) => {
   const validation = validateVoucherSchema.safeParse(req.body);
   if (!validation.success) {
@@ -44,6 +46,7 @@ export const validateVoucher = async (req, res, next) => {
   }
 };
 
+// Lấy danh sách voucher phân trang cho quản trị viên.
 export const listAdminVouchers = async (req, res, next) => {
   try {
     return res.json({
@@ -68,6 +71,7 @@ const parsePayload = (req, res) => {
   return validation.data;
 };
 
+// Tạo voucher mới cùng các điều kiện áp dụng.
 export const createVoucher = async (req, res, next) => {
   const payload = parsePayload(req, res);
   if (!payload) return;
@@ -81,6 +85,7 @@ export const createVoucher = async (req, res, next) => {
   }
 };
 
+// Cập nhật thông tin và phạm vi áp dụng của voucher.
 export const updateVoucher = async (req, res, next) => {
   const id = parseId(req.params.voucherId);
   if (!id) return res.status(400).json({ success: false, message: "ID voucher không hợp lệ" });
@@ -96,6 +101,7 @@ export const updateVoucher = async (req, res, next) => {
   }
 };
 
+// Bật hoặc tắt khả năng sử dụng của voucher.
 export const updateVoucherStatus = async (req, res, next) => {
   const id = parseId(req.params.voucherId);
   if (!id || typeof req.body.isActive !== "boolean") {

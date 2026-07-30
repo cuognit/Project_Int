@@ -1,6 +1,7 @@
 import { verifyAccessToken } from "../services/token.service.js";
 import { User } from "../models/index.js";
 
+// Xác thực access token và gắn thông tin người dùng hiện tại vào request.
 export const authenticate = async (req, res, next) => {
   const authorization = req.headers.authorization;
   if (!authorization?.startsWith("Bearer ")) {
@@ -40,6 +41,7 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
+// Chỉ cho phép tài khoản quản trị tiếp tục truy cập tài nguyên.
 export const requireAdmin = (req, res, next) => {
   if (req.user?.role !== "admin") {
     return res.status(403).json({
